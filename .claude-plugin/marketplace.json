@@ -1,0 +1,12 @@
+{
+  "name": "team-studio",
+  "owner": {"name": "SeanMisek"},
+  "metadata": {"description": "Agent Team Studio: a visual editor for agent teams, as a Claude Code plugin."},
+  "plugins": [
+    {
+      "name": "teams",
+      "source": "./",
+      "description": "Design agent teams on a visual canvas, save them as templates, and apply one to any prompt with /teams:run."
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "agent-team-studio/team.schema.json",
+  "title": "Agent Team Studio team (version 1)",
+  "description": "Documentation of the team file. lib/validate.mjs is the executable validator and additionally checks graph rules: unknown edge ends, self loops, at most one lead, duplicate ids (errors); empty descriptions, disconnected nodes, duplicate names (warnings).",
+  "type": "object",
+  "required": ["version", "name", "nodes", "edges"],
+  "properties": {
+    "version": { "const": 1 },
+    "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}$", "description": "Slug; equals the file name." },
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "maxReviewRounds": { "type": "integer", "minimum": 0, "maximum": 10, "default": 2 },
+        "parallel": { "type": "boolean", "default": true }
+      }
+    },
+    "nodes": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/node" } },
+    "edges": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/edge" } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,40}$" },
+    "node": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "role": { "type": "string" },
+        "description": { "type": "string", "maxLength": 50000, "description": "Markdown instructions: the agent's system prompt." },
+        "model": { "enum": ["inherit", "opus", "sonnet", "haiku"], "default": "inherit" },
+        "tools": { "type": ["array", "null"], "items": { "type": "string", "minLength": 1 }, "description": "null = inherit all tools." },
+        "isLead": { "type": "boolean" },
+        "isHead": { "type": "boolean", "description": "At most one per team. The head is the main session (not spawned); cannot also be the lead." },
+        "profile": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}$" },
+        "x": { "type": "number" },
+        "y": { "type": "number" }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["id", "from", "to", "kind"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "from": { "$ref": "#/$defs/id" },
+        "to": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["delegate", "handoff", "review", "consult", "debate"] },
+        "polarity": { "enum": ["positive", "negative"], "default": "positive", "description": "Illustration only; ignored by validate-graph and compile." },
+        "label": { "type": "string", "maxLength": 24 },
+        "description": { "type": "string", "maxLength": 50000 }
+      }
+    }
+  }
+}

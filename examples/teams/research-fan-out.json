@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "name": "research-fan-out",
+  "title": "Fan-out and fan-in research",
+  "description": "A lead splits a question across three researchers working independently, then a writer merges their findings into one answer.",
+  "settings": {
+    "maxReviewRounds": 1,
+    "parallel": true
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Research lead",
+      "role": "Breaks work down, sequences it and keeps the result on target",
+      "description": "Restate the goal and the success criteria in your own words before assigning anything.\nSplit the work into tasks with one owner each, explicit inputs and outputs, and dependencies.\nCollect results, check them against the success criteria, and send work back with specific reasons when it falls short.\nDecide ties and scope questions yourself and record the decision.\nClose with a status report: done, not done, risks, next step.",
+      "model": "inherit",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "isLead": true,
+      "profile": "pm",
+      "x": 60,
+      "y": 220
+    },
+    {
+      "id": "n2",
+      "name": "Researcher: sources",
+      "role": "Finds and checks facts, and reports sources",
+      "description": "Answer the assigned question only; note adjacent findings in one line each at the end.\nPrefer primary sources and recent material; give a link or file path for every claim.\nSeparate what the source says from your inference, and mark confidence as high, medium or low.\nReport disagreements between sources instead of picking silently.\nReturn a compact summary (under 300 words) followed by the evidence list.\nFocus: published sources and primary documents on the question.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "isLead": false,
+      "profile": "researcher",
+      "x": 380,
+      "y": 40
+    },
+    {
+      "id": "n3",
+      "name": "Researcher: data",
+      "role": "Finds and checks facts, and reports sources",
+      "description": "Answer the assigned question only; note adjacent findings in one line each at the end.\nPrefer primary sources and recent material; give a link or file path for every claim.\nSeparate what the source says from your inference, and mark confidence as high, medium or low.\nReport disagreements between sources instead of picking silently.\nReturn a compact summary (under 300 words) followed by the evidence list.\nFocus: numbers, datasets and measurable evidence on the question.",
+      "model": "sonnet",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "isLead": false,
+      "profile": "researcher",
+      "x": 380,
+      "y": 220
+    },
+    {
+      "id": "n4",
+      "name": "Critic: counter-evidence",
+      "role": "Looks for evidence that contradicts the emerging answer",
+      "description": "Assume the work is flawed and look for how. Name the strongest objection first.\nTest assumptions, missing cases, hidden dependencies, and claims that lack evidence.\nOffer a counter-position with reasons, not just doubts; say what evidence would change your mind.\nConcede points that hold up. Do not manufacture objections to look thorough.\nEnd with a verdict: sound, sound with changes (list them), or unsound (say why).\nFocus: the strongest evidence against the likely answer.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "isLead": false,
+      "profile": "critic",
+      "x": 380,
+      "y": 400
+    },
+    {
+      "id": "n5",
+      "name": "Writer",
+      "role": "Turns findings into clear prose for a stated audience",
+      "description": "Ask who the reader is and what they should do after reading; write to that, not to yourself.\nLead with the conclusion, then the support. Short paragraphs, concrete nouns, no filler.\nUse only facts supplied by the other agents; mark anything you could not verify instead of smoothing it over.\nKeep numbers, names and citations exactly as given.\nDeliver the draft plus a three-line list of what you left out and why.",
+      "model": "inherit",
+      "tools": [
+        "Read",
+        "Write",
+        "Edit"
+      ],
+      "isLead": false,
+      "profile": "writer",
+      "x": 720,
+      "y": 220
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "n1",
+      "to": "n2",
+      "kind": "delegate",
+      "label": "sources",
+      "description": "Lead assigns the source-gathering sub-question; Researcher returns a summary with a link or path for every claim."
+    },
+    {
+      "id": "e2",
+      "from": "n1",
+      "to": "n3",
+      "kind": "delegate",
+      "label": "data",
+      "description": "Lead assigns the data sub-question; Researcher returns figures with units, dates and provenance."
+    },
+    {
+      "id": "e3",
+      "from": "n1",
+      "to": "n4",
+      "kind": "delegate",
+      "label": "counter",
+      "description": "Lead assigns the search for counter-evidence; Critic returns the strongest objections with sources."
+    },
+    {
+      "id": "e4",
+      "from": "n2",
+      "to": "n5",
+      "kind": "handoff",
+      "label": "findings",
+      "description": "Researcher passes its summary and evidence list to Writer unchanged."
+    },
+    {
+      "id": "e5",
+      "from": "n3",
+      "to": "n5",
+      "kind": "handoff",
+      "label": "figures",
+      "description": "Researcher passes its figures and provenance to Writer unchanged."
+    },
+    {
+      "id": "e6",
+      "from": "n4",
+      "to": "n5",
+      "kind": "handoff",
+      "label": "objections",
+      "description": "Critic passes its objections to Writer, who must address each one in the final answer or say why not."
+    }
+  ]
+}

@@ -1,0 +1,1397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Team Studio</title>
+<style>
+:root{--bg:#f7f8fa;--fg:#1c2128;--mute:#57606a;--rule:#d0d7de;--card:#fff;--panel:#fff;--accent:#5B2BD1;--accent-fg:#fff;--tint:#DBD0F5;--warn:#B2182B;--edge:#6e7781;--dot:#cfd5dc;--neg:#B2182B;--shadow:0 1px 2px rgba(20,24,29,.12),0 2px 8px rgba(20,24,29,.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--fg:#e6edf3;--mute:#9aa4af;--rule:#30363d;--card:#1f262e;--panel:#191e24;--accent:#A78BFA;--accent-fg:#14181d;--tint:#2d2450;--warn:#E5697A;--neg:#E5697A;--edge:#8b95a1;--dot:#2a3139;--shadow:0 1px 2px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.35);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181d;--fg:#e6edf3;--mute:#9aa4af;--rule:#30363d;--card:#1f262e;--panel:#191e24;--accent:#A78BFA;--accent-fg:#14181d;--tint:#2d2450;--warn:#E5697A;--neg:#E5697A;--edge:#8b95a1;--dot:#2a3139;--shadow:0 1px 2px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.35);color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 Inter,Arial,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+body.dragging,body.dragging *{user-select:none!important;-webkit-user-select:none!important;cursor:grabbing!important}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--rule);border-radius:6px;padding:5px 10px;cursor:pointer;line-height:1.2}
+button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+button.primary:hover:not(:disabled){color:var(--accent-fg);filter:brightness(1.1)}
+button.danger{color:var(--warn)}button.danger:hover:not(:disabled){border-color:var(--warn);color:var(--warn)}
+button[aria-pressed="true"]{background:var(--tint);border-color:var(--accent);color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=text],input[type=number],select,textarea{width:100%;background:var(--card);border:1px solid var(--rule);border-radius:6px;padding:6px 8px}
+textarea{resize:vertical;min-height:70px;font:13px/1.45 ui-monospace,Menlo,Consolas,monospace}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.mute{color:var(--mute)}.small{font-size:12px}
+/* top bar */
+.top{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--rule);background:var(--panel);flex:none}
+.top .brand{font-weight:600;margin-right:4px;white-space:nowrap}
+.top #teamTitle{flex:1 1 180px;min-width:140px;max-width:340px;font-weight:600}
+.top .sep{width:1px;align-self:stretch;background:var(--rule);margin:0 2px}
+.top .grow{flex:1}
+#status{font-size:12px;color:var(--mute);white-space:nowrap}
+#issuesBtn.has{border-color:var(--warn);color:var(--warn)}
+/* layout */
+.main{flex:1;display:flex;min-height:0}
+aside{background:var(--panel);display:flex;flex-direction:column;min-height:0;flex:none}
+#palette{width:236px;border-right:1px solid var(--rule)}
+#inspector{width:320px;border-left:1px solid var(--rule)}
+body.pal-collapsed #palette,body.insp-collapsed #inspector{display:none}
+aside .ph{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 6px}
+aside h2{font:600 13px/1.2 Inter,Arial,sans-serif;margin:0;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+aside .pb{padding:4px 12px 12px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:10px}
+aside .pf{padding:10px 12px;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:6px}
+.wide{width:100%}
+#profList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+#profList li{display:flex;gap:4px}
+.prof{flex:1;text-align:left;display:flex;flex-direction:column;gap:1px;min-width:0}
+.prof b{font-weight:600}.prof span{color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prof .tag{font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+.stage{flex:1;min-width:0;display:flex;flex-direction:column}
+#viewport{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;background-image:radial-gradient(var(--dot) 1.2px,transparent 1.2px);background-size:24px 24px;cursor:default;user-select:none;-webkit-user-select:none;outline-offset:-2px}
+#viewport.pan{cursor:grab}#viewport.panning{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0}
+#edges{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+#nodes{position:absolute;left:0;top:0;pointer-events:none}
+.node{position:absolute;width:200px;height:76px;background:var(--card);border:1px solid var(--rule);border-radius:8px;box-shadow:var(--shadow);padding:8px 14px 6px;pointer-events:auto;cursor:grab;display:flex;flex-direction:column;gap:2px;touch-action:none}
+.node:hover{border-color:var(--mute)}
+.node.sel{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent),var(--shadow)}
+.node.drop-ok{box-shadow:0 0 0 3px var(--accent)}.node.drop-bad{box-shadow:0 0 0 3px var(--warn)}
+.node.lead{border-top:4px solid var(--accent);padding-top:5px}
+.n-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n-role{color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.n-meta{display:flex;gap:4px;margin-top:auto}
+.pill{font-size:11px;border:1px solid var(--rule);border-radius:10px;padding:0 7px;color:var(--mute)}
+.pill.lead{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.port{position:absolute;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:var(--card);border:2px solid var(--edge)}
+.port.in{left:-8px}.port.out{right:-8px;background:var(--accent);border-color:var(--accent);cursor:crosshair}
+.port.out::after{content:"";position:absolute;inset:-8px}
+.port.out:hover{transform:scale(1.25)}
+.nbadge{position:absolute;top:-9px;right:-9px;min-width:18px;height:18px;border-radius:9px;background:var(--warn);color:#fff;font-size:11px;font-weight:600;display:none;align-items:center;justify-content:center;padding:0 4px}
+.node.has-issue .nbadge{display:flex}
+.nbadge.warnonly{background:var(--card);color:var(--warn);border:1.5px solid var(--warn)}
+.edge .hit{fill:none;stroke:transparent;stroke-width:16;pointer-events:stroke;cursor:pointer}
+.edge .vis{fill:none;stroke:var(--edge);stroke-width:2}
+.edge.k-handoff .vis{stroke-dasharray:10 4 2 4}
+.edge.k-review .vis{stroke-dasharray:7 5}
+.edge.k-consult .vis{stroke-dasharray:1.5 5;stroke-linecap:round}
+.edge.k-debate .vis{stroke-width:3}
+.edge.sel .vis{stroke:var(--accent);stroke-width:3}
+.edge .chip{fill:var(--card);stroke:var(--rule);pointer-events:all;cursor:pointer}
+.edge.sel .chip{stroke:var(--accent)}
+.edge text{font:12px Inter,Arial,sans-serif;fill:var(--fg);pointer-events:none;text-anchor:middle}
+.edge text.kindonly{fill:var(--mute);font-style:italic}
+.edge .halo{fill:none;stroke:var(--accent);stroke-width:10;stroke-linecap:round;opacity:.25}
+.edge .bar{fill:none;stroke:var(--neg);stroke-width:4;stroke-linecap:butt}
+.edge.neg .vis{stroke:var(--neg)}
+.edge:hover .vis{stroke-width:3.2}.edge:hover .bar{stroke-width:5}
+.edge.sel .bar{stroke-width:5}
+.seg{border:0;padding:0;margin:0;display:flex;min-width:0}
+.seg legend{font-size:12px;color:var(--mute);padding:0 0 3px;float:left;width:100%}
+.seg label{flex:1;position:relative}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:block;text-align:center;border:1px solid var(--rule);padding:5px 6px;background:var(--panel);color:var(--fg);font-size:13px}
+.seg label:first-of-type span{border-radius:6px 0 0 6px}
+.seg label:last-of-type span{border-radius:0 6px 6px 0;border-left:0}
+.seg input:checked+span{background:var(--tint);border-color:var(--accent);color:var(--accent);font-weight:600}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.node.head{border:3px solid var(--accent);border-radius:38px;padding:8px 26px 6px;background:var(--tint)}
+.node.head .port.in{left:-10px}.node.head .port.out{right:-10px}
+.node.head .n-role{color:var(--fg);opacity:.75}
+.pill.you{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600;letter-spacing:.06em}
+.prof.headitem{border:2px solid var(--accent);border-radius:20px;background:var(--tint)}
+.prof.headitem span.expl{white-space:normal;color:var(--fg);opacity:.8}
+.ahp{fill:var(--edge)}.ahs{fill:var(--accent)}
+#tmp{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:5 4;display:none}
+.tools{position:absolute;left:10px;top:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:5px 6px;box-shadow:var(--shadow);max-width:calc(100% - 20px);z-index:2}
+.tools select{width:auto;padding:4px 6px}
+.tools label{display:flex;gap:4px;align-items:center;font-size:12px;color:var(--mute)}
+.tools label input{width:auto}
+.hint{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);font-size:12px;color:var(--mute);background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:3px 12px;pointer-events:none;max-width:90%;text-align:center}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;color:var(--mute);text-align:center;padding:20px}
+/* drawer */
+#drawer{flex:none;height:38%;min-height:160px;border-top:1px solid var(--rule);background:var(--panel);display:flex;flex-direction:column}
+#drawer[hidden]{display:none}
+#drawer .dh{display:flex;gap:8px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--rule);flex-wrap:wrap}
+#drawer .dh input{flex:1 1 200px;min-width:120px}
+#briefText{margin:0;padding:10px 14px;overflow:auto;flex:1;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
+#briefText.err{color:var(--warn)}
+/* inspector */
+.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mute)}
+.f>input,.f>select,.f>textarea{color:var(--fg);font-size:14px}
+.f>textarea{font-size:13px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chips button{padding:2px 9px;font-size:12px;border-radius:12px}
+.chk{display:flex;gap:6px;align-items:center;font-size:14px;color:var(--fg)}
+.chk input{width:auto}
+.sec{border-top:1px solid var(--rule);padding-top:8px;display:flex;flex-direction:column;gap:6px}
+.sec h3{font:600 12px/1.2 Inter,Arial,sans-serif;margin:0;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.conn{display:flex;flex-direction:column;gap:4px}
+.conn button{text-align:left;font-size:13px}
+.count{font-size:11px;color:var(--mute);align-self:flex-end}
+/* dialogs */
+dialog{background:var(--panel);color:var(--fg);border:1px solid var(--rule);border-radius:10px;padding:0;max-width:min(640px,94vw);width:640px;box-shadow:0 8px 40px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(20,24,29,.5)}
+dialog .dhd{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--rule)}
+dialog .dhd h2{margin:0;font:600 16px/1.2 Inter,Arial,sans-serif}
+dialog .dbd{padding:12px 16px;display:flex;flex-direction:column;gap:10px;max-height:70vh;overflow:auto}
+.tplrow{display:flex;gap:6px;align-items:center;border:1px solid var(--rule);border-radius:8px;padding:8px 10px;flex-wrap:wrap}
+.tplrow .t{flex:1 1 200px;min-width:0}.tplrow .t b{display:block}
+.tplrow .t span{font-size:12px;color:var(--mute)}
+.issue{display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--rule);padding:6px 0}
+.issue .lv{font-size:11px;font-weight:600;text-transform:uppercase;color:var(--warn);width:58px;flex:none}
+.issue .msg{flex:1}
+table.keys{border-collapse:collapse;width:100%}table.keys td{padding:4px 6px;border-bottom:1px solid var(--rule);vertical-align:top}
+table.keys td:first-child{white-space:nowrap;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.legend{display:grid;grid-template-columns:90px 1fr;gap:4px 10px;align-items:center}
+.legend svg{width:80px;height:12px;overflow:visible}
+.legend path{stroke:var(--edge);stroke-width:2;fill:none}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;max-width:90vw;z-index:50;opacity:0;pointer-events:none;transition:opacity .15s}
+#toast.show{opacity:1}
+@media (max-width:900px){#palette{width:210px}#inspector{width:270px}.top .brand,.top .sep{display:none}.top{gap:4px;padding:6px 8px}.top button{padding:4px 7px;font-size:13px}.tools{gap:4px;padding:4px}.tools button{padding:3px 7px;font-size:13px}#status{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top" role="banner">
+  <button id="btnPal" aria-pressed="true" title="Show or hide the agent palette">Agents</button>
+  <strong class="brand">Agent Team Studio</strong>
+  <label class="sr" for="teamTitle">Team title</label>
+  <input id="teamTitle" type="text" maxlength="80" placeholder="Team title">
+  <button id="btnTpl" title="Load, save, duplicate or delete team templates">Templates</button>
+  <span class="sep"></span>
+  <button id="btnUndo" title="Undo (Cmd/Ctrl+Z)">Undo</button>
+  <button id="btnRedo" title="Redo (Shift+Cmd/Ctrl+Z)">Redo</button>
+  <span class="sep"></span>
+  <button id="btnImport">Import JSON</button>
+  <button id="btnExport">Export JSON</button>
+  <input id="fileIn" type="file" accept="application/json,.json" class="sr" tabindex="-1" aria-hidden="true">
+  <span class="sep"></span>
+  <button id="btnBrief" aria-expanded="false" aria-controls="drawer">Brief preview</button>
+  <button id="btnCopy">Copy brief</button>
+  <button id="btnSave" class="primary" title="Save the team to Claude (Cmd/Ctrl+S)">Save to Claude</button>
+  <span class="grow"></span>
+  <button id="issuesBtn" title="Validation results">Checks</button>
+  <span id="status" role="status"></span>
+  <button id="btnTheme" title="Switch light, dark or system theme">Theme</button>
+  <button id="btnHelp" title="Shortcuts and edge kinds">Help</button>
+  <button id="btnInsp" aria-pressed="true" title="Show or hide the inspector">Inspector</button>
+</header>
+
+<div class="main">
+  <aside id="palette" aria-label="Agent palette">
+    <div class="ph"><h2>Agent profiles</h2></div>
+    <div class="pb">
+      <button id="btnNewAgent" class="primary wide">+ New blank agent</button>
+      <label class="f"><span class="sr">Filter profiles</span><input id="profFilter" type="text" placeholder="Filter profiles"></label>
+      <ul id="profList"></ul>
+    </div>
+    <div class="pf">
+      <button id="btnSaveProf" class="wide" disabled>Save selected node as profile</button>
+      <p class="mute small" style="margin:0">Click a profile to add it, or drag it onto the canvas.</p>
+    </div>
+  </aside>
+
+  <section class="stage" aria-label="Canvas">
+    <div id="viewport" tabindex="-1" aria-label="Team graph canvas">
+      <div id="world">
+        <svg id="edges" width="1" height="1" aria-hidden="true">
+          <defs>
+            <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="ahp" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="ahs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="ahs" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <g id="edgeLayer"></g>
+          <path id="tmp" d=""/>
+        </svg>
+        <div id="nodes"></div>
+      </div>
+      <div class="tools" role="toolbar" aria-label="Canvas tools">
+        <button id="tAdd" title="Add a blank agent">+ Agent</button>
+        <button id="tLayout" title="Auto-layout the graph">Auto-layout</button>
+        <button id="tFit" title="Fit all nodes in view">Fit view</button>
+        <button id="tOut" aria-label="Zoom out">&minus;</button>
+        <button id="tZoom" aria-label="Reset zoom to 100 percent">100%</button>
+        <button id="tIn" aria-label="Zoom in">+</button>
+        <label><input type="checkbox" id="tSnap"> Snap</label>
+        <label>New edge kind <select id="tKind" aria-label="Kind for new edges"></select></label>
+        <label>New edge polarity <select id="tPol" aria-label="Polarity for new edges"><option value="positive">Positive arrow</option><option value="negative">Negative inhibitor</option></select></label>
+      </div>
+      <div id="empty" class="empty" hidden><div><strong>Empty canvas</strong><br>Add an agent from the palette, or double-click here.</div></div>
+      <div class="hint" id="hint">Drag from the purple dot on a node's right edge to another node to connect. Drag the background or hold Space to pan; scroll to zoom.</div>
+    </div>
+    <section id="drawer" hidden aria-label="Brief preview">
+      <div class="dh">
+        <strong>Brief preview</strong>
+        <label class="sr" for="briefPrompt">Task prompt</label>
+        <input id="briefPrompt" type="text" placeholder="Optional task prompt to substitute into the brief">
+        <button id="briefRefresh">Refresh</button>
+        <button id="briefClose" aria-label="Close brief preview">Close</button>
+      </div>
+      <pre id="briefText" tabindex="0" aria-live="polite"></pre>
+    </section>
+  </section>
+
+  <aside id="inspector" aria-label="Inspector">
+    <div class="ph"><h2 id="inspTitle">Team</h2><button id="inspClose" aria-label="Hide inspector">Hide</button></div>
+    <div class="pb" id="inspBody"></div>
+  </aside>
+</div>
+
+<dialog id="dlgTpl" aria-labelledby="dlgTplH"><div class="dhd"><h2 id="dlgTplH">Templates</h2><button data-close>Close</button></div><div class="dbd" id="tplBody"></div></dialog>
+<dialog id="dlgProf" aria-labelledby="dlgProfH"><form method="dialog" id="profForm"><div class="dhd"><h2 id="dlgProfH">Save node as profile</h2></div>
+  <div class="dbd"><label class="f"><span>Profile slug (letters, digits, hyphens)</span><input id="profSlug" type="text" maxlength="63" required></label>
+  <p id="profNote" class="mute small" style="margin:0"></p>
+  <div class="row"><button type="submit" class="primary" id="profOk">Save profile</button><button type="button" data-close>Cancel</button></div></div></form></dialog>
+<dialog id="dlgIssues" aria-labelledby="dlgIssuesH"><div class="dhd"><h2 id="dlgIssuesH">Checks</h2><button data-close>Close</button></div><div class="dbd" id="issuesBody"></div></dialog>
+<dialog id="dlgHelp" aria-labelledby="dlgHelpH"><div class="dhd"><h2 id="dlgHelpH">Help</h2><button data-close>Close</button></div><div class="dbd" id="helpBody"></div></dialog>
+<dialog id="dlgConfirm" aria-labelledby="dlgConfirmH"><form method="dialog"><div class="dhd"><h2 id="dlgConfirmH">Please confirm</h2></div>
+  <div class="dbd"><p id="confirmMsg" style="margin:0"></p><div class="row"><button type="submit" value="ok" class="primary" id="confirmOk">Replace</button><button type="submit" value="cancel" autofocus>Cancel</button></div></div></form></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+/* ---------- constants ---------- */
+const NW = 200, NH = 76;
+const KINDS = ['delegate', 'handoff', 'review', 'consult', 'debate'];
+const KIND_HELP = {
+  delegate: 'from assigns work to "to" and waits for the result',
+  handoff: 'from finishes, then passes its output to "to" (pipeline step)',
+  review: 'from reviews the output of "to" and returns feedback; "to" revises (bounded rounds)',
+  consult: 'from may ask "to" questions (one-way ask, answer returns)',
+  debate: 'two-way: both state a position, then reconcile; the lead decides ties'
+};
+const MODELS = ['inherit', 'opus', 'sonnet', 'haiku'];
+const TOOLS = ['Read', 'Grep', 'Glob', 'Bash', 'Edit', 'Write', 'WebSearch', 'WebFetch', 'Agent', 'NotebookEdit', 'TodoWrite'];
+const READ_ONLY = ['Read', 'Grep', 'Glob'];
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const k in (attrs || {})) {
+    const v = attrs[k];
+    if (v === false || v == null) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, '');
+    else e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) e.append(c);
+  return e;
+}
+const SVGNS = 'http://www.w3.org/2000/svg';
+function sv(tag, attrs) { const e = document.createElementNS(SVGNS, tag); for (const k in (attrs || {})) e.setAttribute(k, attrs[k]); return e; }
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
+};
+const clone = o => JSON.parse(JSON.stringify(o));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function slugify(s) {
+  s = String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 63).replace(/-+$/, '');
+  return s || '';
+}
+const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,62}$/;
+function nextId(prefix, arr) {
+  let m = 0;
+  for (const o of arr) { const r = /^[a-z]+(\d+)$/.exec(o.id); if (r) m = Math.max(m, +r[1]); }
+  let id = prefix + (m + 1);
+  const used = new Set(arr.map(o => o.id));
+  while (used.has(id)) id = prefix + (++m + 1);
+  return id;
+}
+let toastTimer;
+function toast(msg, ms = 3200) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+async function copyText(s) {
+  try { await navigator.clipboard.writeText(s); return true; } catch {
+    const ta = el('textarea', { style: 'position:fixed;opacity:0;left:0;top:0' }); ta.value = s;
+    document.body.append(ta); ta.select(); let ok = false;
+    try { ok = document.execCommand('copy'); } catch { /* ignore */ }
+    ta.remove(); return ok;
+  }
+}
+const isTyping = t => !!(t && t.closest && t.closest('input,textarea,select,[contenteditable="true"]'));
+
+/* ---------- built-in profiles and templates ---------- */
+const BUILTIN_PROFILES = [
+  { slug: 'architect', name: 'Architect', role: 'Plans the change', model: 'opus', tools: ['Read', 'Grep', 'Glob'],
+    description: 'You are the Architect. Turn the request into a concrete plan before any code is written.\n- Read the relevant code first; name the files, functions and interfaces that change.\n- Produce a numbered plan with explicit acceptance criteria and the risks you see.\n- Prefer the smallest design that satisfies the requirement; say what you chose not to do.\n- Do not edit files. Hand back the plan and your open questions.' },
+  { slug: 'implementer', name: 'Implementer', role: 'Writes the code', model: 'sonnet', tools: null,
+    description: 'You are the Implementer. Make the change the plan describes, and nothing beyond it.\n- Follow the plan step by step; if a step is wrong or impossible, stop and report why instead of improvising.\n- Match existing style and conventions; keep the diff small and focused.\n- Run the relevant build or tests after each meaningful step.\n- Finish with a summary: files changed, commands run, anything left undone.' },
+  { slug: 'reviewer', name: 'Reviewer', role: 'Reviews the diff', model: 'sonnet', tools: ['Read', 'Grep', 'Glob', 'Bash'],
+    description: 'You are the Reviewer. Examine the diff and the plan it implements.\n- Check correctness, edge cases, error handling, security and consistency with the codebase.\n- Return concrete feedback: file, line, problem, suggested fix. Rank items blocker, should-fix, nit.\n- Do not rewrite the code yourself and do not nitpick style the formatter handles.\n- End with a verdict: approve, or request changes with the blockers listed.' },
+  { slug: 'tester', name: 'Tester', role: 'Proves it works', model: 'sonnet', tools: ['Read', 'Grep', 'Glob', 'Bash', 'Edit', 'Write'],
+    description: 'You are the Tester. Prove or disprove that the change works.\n- Derive test cases from the acceptance criteria, then add edge cases and a regression case for any bug found.\n- Run the existing suite first, then your new tests, and report the exact commands and output.\n- Never weaken or delete an existing test to make it pass.\n- Report each failure with a minimal reproduction.' },
+  { slug: 'researcher', name: 'Researcher', role: 'Finds what is known', model: 'sonnet', tools: ['Read', 'Grep', 'Glob', 'WebSearch', 'WebFetch'],
+    description: 'You are the Researcher. Find out what is known before anyone decides.\n- Search the codebase, docs and the web for primary sources; prefer them over summaries.\n- Record each claim with its source (path:line or URL) and how confident you are.\n- Separate facts, inferences and open questions.\n- Return a short findings list, not a narrative; flag anything that contradicts the request.' },
+  { slug: 'pm', name: 'Project Manager', role: 'Coordinates and decides', model: 'sonnet', tools: ['Read', 'Grep', 'Glob'],
+    description: 'You are the Project Manager. Keep the team on the goal and on schedule.\n- Restate the goal and the done-criteria in two sentences.\n- Split the work into tasks with an owner and an order; run independent tasks in parallel.\n- When agents disagree or stall, decide, record why, and move on.\n- Finish with a status report: done, not done, risks, and the next step.' },
+  { slug: 'critic', name: 'Critic', role: 'Finds what is wrong', model: 'opus', tools: ['Read', 'Grep', 'Glob'],
+    description: 'You are the Critic. Your job is to find what is wrong, not to be agreeable.\n- Attack the plan or result: hidden assumptions, missing cases, simpler alternatives, evidence weaker than claimed.\n- Rank objections by how much they would change the conclusion.\n- Say what evidence would settle each objection.\n- If it holds up, say so plainly and say what you tried.' }
+];
+const BP = Object.fromEntries(BUILTIN_PROFILES.map(p => [p.slug, p]));
+function fromProf(slug, o) { const p = BP[slug]; return Object.assign({ name: p.name, role: p.role, description: p.description, model: p.model, tools: p.tools ? p.tools.slice() : null, isLead: false, profile: slug }, o || {}); }
+function mk(nodes, edges, meta) {
+  nodes.forEach((n, i) => { n.id = 'n' + (i + 1); });
+  const byName = Object.fromEntries(nodes.map(n => [n.name, n.id]));
+  const es = edges.map((e, i) => ({ id: 'e' + (i + 1), from: byName[e[0]], to: byName[e[1]], kind: e[2], label: e[3], description: e[4] }));
+  return Object.assign({ version: 1, settings: { maxReviewRounds: 2, parallel: true }, nodes, edges: es }, meta);
+}
+const HEAD = o => Object.assign({ name: 'You (head agent)', role: 'The main session you talk to', description: '', model: 'inherit', tools: null, isLead: false, isHead: true }, o || {});
+const STARTERS = [
+  mk([HEAD({ description: 'Keep the loop bounded: stop after the maximum review rounds and report what is still open. Ask me before anything destructive.' }), fromProf('architect'), fromProf('implementer'), fromProf('reviewer'), fromProf('tester')], [
+    ['You (head agent)', 'Architect', 'delegate', 'request', 'You hand the request to Architect and wait for the finished, reviewed and tested change.'],
+    ['Tester', 'You (head agent)', 'handoff', 'report', 'Tester reports the test results back to you, the head agent.'],
+    ['Architect', 'Implementer', 'delegate', 'plan', 'Architect gives Implementer a numbered plan with acceptance criteria; Implementer must not start before it.'],
+    ['Reviewer', 'Implementer', 'review', 'feedback', 'Reviewer reads the Implementer\'s diff and returns ranked, concrete feedback; Implementer revises. Stop after the maximum review rounds or on approval.'],
+    ['Implementer', 'Tester', 'handoff', 'changes', 'When the review is approved, Implementer passes the changed files and run instructions to Tester.']
+  ], { name: 'review-loop', title: 'Implement and review loop', description: 'A plan, an implementation, a bounded review loop, then tests.' }),
+  mk([fromProf('pm', { name: 'Lead', role: 'Splits the question and synthesizes', isLead: true }),
+      fromProf('researcher', { name: 'Researcher A', role: 'Prior work', description: 'You research prior work and existing solutions for the question you are given.\n- Prefer primary sources and cite each with a path or URL.\n- Report what is established, what is disputed, and what is missing.\n- Keep to your angle; other researchers cover the rest.' }),
+      fromProf('researcher', { name: 'Researcher B', role: 'Mechanisms and methods', description: 'You research how and why: mechanisms, methods and constraints behind the question.\n- Prefer primary sources and cite each with a path or URL.\n- State assumptions and the conditions under which they fail.\n- Keep to your angle; other researchers cover the rest.' }),
+      fromProf('researcher', { name: 'Researcher C', role: 'Counterevidence', description: 'You look for evidence against the leading answer.\n- Search for failed replications, counterexamples and critiques.\n- Rate how strong each counterpoint is and why.\n- Keep to your angle; other researchers cover the rest.' }),
+      fromProf('pm', { name: 'Synthesizer', role: 'Merges the findings', description: 'You merge the researchers\' findings into one answer.\n- Reconcile conflicts explicitly; do not average them away.\n- Lead with the conclusion, then the evidence, then the uncertainty.\n- List what no one could establish.' }),
+      fromProf('critic')], [
+    ['Lead', 'Researcher A', 'delegate', 'prior work', 'Lead assigns the angle and waits for findings. Run the three researchers in parallel.'],
+    ['Lead', 'Researcher B', 'delegate', 'methods', 'Lead assigns the angle and waits for findings.'],
+    ['Lead', 'Researcher C', 'delegate', 'counter', 'Lead assigns the angle and waits for findings.'],
+    ['Researcher A', 'Synthesizer', 'handoff', 'findings', 'Passes its cited findings list as input.'],
+    ['Researcher B', 'Synthesizer', 'handoff', 'findings', 'Passes its cited findings list as input.'],
+    ['Researcher C', 'Synthesizer', 'handoff', 'findings', 'Passes its cited findings list as input.'],
+    ['Critic', 'Synthesizer', 'review', 'objections', 'Critic attacks the synthesis and ranks objections; Synthesizer revises or rebuts each.']
+  ], { name: 'fan-out-research', title: 'Fan-out research', description: 'A lead fans a question out to three researchers, a synthesizer merges, a critic checks.' }),
+  mk([HEAD(), fromProf('researcher'), fromProf('architect'), fromProf('implementer'), fromProf('tester'), fromProf('reviewer')], [
+    ['You (head agent)', 'Researcher', 'delegate', 'request', 'You pass the request to Researcher; the pipeline then runs in order.'],
+    ['Researcher', 'Architect', 'handoff', 'findings', 'Researcher passes sourced findings and constraints to Architect.'],
+    ['Architect', 'Implementer', 'handoff', 'design', 'Architect passes the numbered plan and acceptance criteria.'],
+    ['Implementer', 'Tester', 'handoff', 'code', 'Implementer passes changed files and how to run them.'],
+    ['Tester', 'Reviewer', 'handoff', 'results', 'Tester passes the test report; Reviewer gives the final verdict.']
+  ], { name: 'pipeline', title: 'Research to review pipeline', description: 'A linear pipeline: research, design, build, test, review.' })
+];
+
+/* ---------- state ---------- */
+let team = blankTeam();
+let sel = null;                    // {type:'node'|'edge', id}
+let view = { x: 80, y: 80, k: 1 };
+let undo = [], redo = [], lastKey = null, lastT = 0;
+let lastKind = 'delegate', lastPol = 'positive', snap = false;
+let drag = null, spaceDown = false;
+let server = { up: false, home: '', profiles: [], teams: [] };
+let problems = [];
+let savedRef = null;   // {src:'server'|'local', slug} of the stored team this graph came from or was last saved as
+
+function blankTeam() { return { version: 1, name: '', title: 'Untitled team', description: '', settings: { maxReviewRounds: 2, parallel: true }, nodes: [], edges: [] }; }
+const nodeById = id => team.nodes.find(n => n.id === id);
+const edgeById = id => team.edges.find(e => e.id === id);
+const snapshot = () => JSON.stringify(team);
+
+const CTRL = /[\u0000-\u001f\u007f]/;
+const TOOL_RE = /^[A-Za-z0-9_:*()-]+$/;
+const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
+const LIMITS = { nodes: 64, edges: 256, text: 50000, name: 80, label: 24 };
+function normalize(raw, report) {
+  const t = blankTeam(), bad = [], dropped = [], notes = [];
+  if (raw && raw.team && typeof raw.team === 'object' && !Array.isArray(raw.nodes)) raw = raw.team;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('Not a team object.');
+  if (!Array.isArray(raw.nodes)) throw new Error('Team has no "nodes" array.');
+  const str = (v, what, o = {}) => {
+    if (v == null) return '';
+    if (typeof v !== 'string') { bad.push(what + ' must be text.'); return ''; }
+    if (o.single && CTRL.test(v)) bad.push(what + ' contains a line break or control character.');
+    if (o.max && v.length > o.max) bad.push(what + ' is longer than ' + o.max + ' characters.');
+    return v;
+  };
+  t.name = str(raw.name, 'The team file name'); t.title = str(raw.title, 'The title', { single: true, max: LIMITS.name }) || t.name || 'Untitled team';
+  t.description = str(raw.description, 'The description', { max: LIMITS.text });
+  const s0 = raw.settings == null ? {} : raw.settings;
+  if (typeof s0 !== 'object' || Array.isArray(s0)) bad.push('"settings" must be an object.');
+  else {
+    const m = s0.maxReviewRounds;
+    if (m !== undefined && !(Number.isInteger(m) && m >= 0 && m <= 10)) bad.push('settings.maxReviewRounds must be a whole number from 0 to 10 (got ' + JSON.stringify(m) + ').');
+    if (s0.parallel !== undefined && typeof s0.parallel !== 'boolean') bad.push('settings.parallel must be true or false.');
+    t.settings = { maxReviewRounds: Number.isInteger(m) ? m : 2, parallel: s0.parallel !== false };
+  }
+  if (raw.nodes.length > LIMITS.nodes) bad.push('Too many agents (' + raw.nodes.length + '; limit ' + LIMITS.nodes + ').');
+  const ids = new Set(); let needLayout = false;
+  raw.nodes.forEach((n, i) => {
+    if (!n || typeof n !== 'object' || Array.isArray(n)) { bad.push('Node #' + (i + 1) + ' is not an object.'); return; }
+    const id = n.id, where = 'Agent ' + (typeof n.name === 'string' && n.name ? '"' + n.name.slice(0, 30).replace(/[\u0000-\u001f]/g, ' ') + '"' : '#' + (i + 1));
+    if (typeof id !== 'string' || !ID_RE.test(id)) { bad.push(where + ' has an invalid id ' + JSON.stringify(id) + ' (letters, digits, _ and - only, 1-40 characters).'); return; }
+    if (ids.has(id)) { bad.push('Duplicate agent id "' + id + '".'); return; }
+    ids.add(id);
+    let tools = null;
+    if (n.tools != null) {
+      if (!Array.isArray(n.tools)) bad.push(where + ': tools must be null or a list.');
+      else { tools = n.tools.map(String); n.tools.forEach(x => { if (typeof x !== 'string' || !TOOL_RE.test(x)) bad.push(where + ': tool name ' + JSON.stringify(x) + ' is not valid (letters, digits, _ : * ( ) - only).'); }); }
+    }
+    if (n.model !== undefined && !MODELS.includes(n.model)) bad.push(where + ': model must be one of ' + MODELS.join(', ') + '.');
+    if (n.isLead !== undefined && typeof n.isLead !== 'boolean') bad.push(where + ': isLead must be true or false.');
+    if (n.isHead !== undefined && typeof n.isHead !== 'boolean') bad.push(where + ': isHead must be true or false.');
+    if (n.profile != null && (typeof n.profile !== 'string' || !SLUG_RE.test(n.profile))) bad.push(where + ': profile must be a slug.');
+    const node = { id, name: str(n.name, where + ' name', { single: true, max: LIMITS.name }), role: str(n.role, where + ' role', { single: true }),
+      description: str(n.description, where + ' instructions', { max: LIMITS.text }),
+      model: MODELS.includes(n.model) ? n.model : 'inherit', tools, isLead: n.isLead === true };
+    if (n.profile) node.profile = n.profile;
+    if (n.isHead === true) node.isHead = true;
+    if (Number.isFinite(n.x) && Number.isFinite(n.y)) { node.x = Math.round(n.x); node.y = Math.round(n.y); } else { node.x = 0; node.y = 0; needLayout = true; }
+    t.nodes.push(node);
+  });
+  const edgesIn = raw.edges == null ? [] : raw.edges;
+  if (!Array.isArray(edgesIn)) bad.push('"edges" must be a list.');
+  else {
+    if (edgesIn.length > LIMITS.edges) bad.push('Too many edges (' + edgesIn.length + '; limit ' + LIMITS.edges + ').');
+    const eids = new Set();
+    edgesIn.forEach((e, i) => {
+      if (!e || typeof e !== 'object' || Array.isArray(e)) { bad.push('Edge #' + (i + 1) + ' is not an object.'); return; }
+      if (typeof e.id !== 'string' || !ID_RE.test(e.id)) { bad.push('Edge #' + (i + 1) + ' has an invalid id ' + JSON.stringify(e.id) + '.'); return; }
+      if (eids.has(e.id)) { bad.push('Duplicate edge id "' + e.id + '".'); return; }
+      eids.add(e.id);
+      const lbl = 'Edge ' + e.id;
+      if (!KINDS.includes(e.kind)) { bad.push(lbl + ': kind must be one of ' + KINDS.join(', ') + '.'); return; }
+      let polarity = null;
+      if (e.polarity !== undefined && e.polarity !== 'positive') { if (e.polarity === 'negative') polarity = 'negative'; else notes.push(lbl + ': polarity ' + JSON.stringify(e.polarity) + ' is not "positive" or "negative"; treated as positive'); }
+      const label = str(e.label, lbl + ' label', { single: true, max: LIMITS.label }), description = str(e.description, lbl + ' description', { max: LIMITS.text });
+      const nm = x => { const n = t.nodes.find(q => q.id === x); return n ? '"' + n.name + '"' : JSON.stringify(x); };
+      if (!ids.has(e.from) || !ids.has(e.to)) { dropped.push(lbl + ' (' + nm(e.from) + ' to ' + nm(e.to) + '): dangling, an end does not exist'); return; }
+      if (e.from === e.to) { dropped.push(lbl + ' (' + nm(e.from) + ' to itself): self-loop'); return; }
+      const dup = t.edges.find(x => x.kind === e.kind && ((x.from === e.from && x.to === e.to) || (e.kind === 'debate' && x.from === e.to && x.to === e.from)));
+      if (dup) { dropped.push(lbl + ' (' + nm(e.from) + ' to ' + nm(e.to) + ', ' + e.kind + '): duplicate of ' + dup.id); return; }
+      const ne = { id: e.id, from: e.from, to: e.to, kind: e.kind, label, description }; if (polarity) ne.polarity = polarity; t.edges.push(ne);
+    });
+  }
+  if (bad.length) throw new Error(bad.slice(0, 4).join(' ') + (bad.length > 4 ? ' (+' + (bad.length - 4) + ' more problems)' : ''));
+  if (report) { report.dropped = dropped; report.notes = notes; report.needLayout = needLayout; }
+  return t;
+}
+function cleanTeam(forCompile) {
+  const t = clone(team);
+  if (forCompile) t.edges.forEach(e => { delete e.polarity; });   // polarity is illustration only; never sent to the compiler
+  t.version = 1;
+  if (!SLUG_RE.test(t.name)) t.name = slugify(t.title) || 'draft';
+  return t;
+}
+
+/* ---------- history ---------- */
+function mutate(fn, key) {
+  const now = Date.now(), pre = snapshot();
+  const coalesce = key && key === lastKey && now - lastT < 1200;
+  fn();
+  if (snapshot() === pre) return;
+  if (!coalesce) { undo.push(pre); if (undo.length > 200) undo.shift(); redo = []; }
+  lastKey = key || null; lastT = now;
+  afterChange();
+}
+function pushUndo(pre) { undo.push(pre); if (undo.length > 200) undo.shift(); redo = []; lastKey = null; }
+function restore(json) {
+  team = JSON.parse(json); lastKey = null;
+  if (sel && !(sel.type === 'node' ? nodeById(sel.id) : edgeById(sel.id))) sel = null;
+  syncTitle(); rebuildInspector(); afterChange();
+}
+function doUndo() { if (!undo.length) return; redo.push(snapshot()); restore(undo.pop()); }
+function doRedo() { if (!redo.length) return; undo.push(snapshot()); restore(redo.pop()); }
+
+function afterChange() { renderAll(); scheduleSave(); scheduleBrief(); }
+
+/* ---------- validation ---------- */
+function validate(t) {
+  const P = [], ids = new Set(t.nodes.map(n => n.id));
+  const nm = n => '"' + (n.name || n.id) + '"';
+  if (!t.nodes.length) P.push({ level: 'warning', message: 'The team has no agents yet.' });
+  if (!t.title.trim()) P.push({ level: 'warning', message: 'The team has no title.' });
+  t.nodes.filter(n => n.isLead).forEach((n, i, a) => { if (a.length > 1) P.push({ level: 'error', message: nm(n) + ' is one of ' + a.length + ' leads; at most one agent can lead.', nodeId: n.id }); });
+  const heads = t.nodes.filter(n => n.isHead);
+  if (heads.length > 1) heads.forEach(n => P.push({ level: 'error', message: nm(n) + ' is one of ' + heads.length + ' head agents; at most one is allowed.', nodeId: n.id }));
+  const names = {};
+  t.nodes.forEach(n => {
+    if (!n.name.trim()) P.push({ level: 'error', message: 'An agent has no name.', nodeId: n.id });
+    if (!n.description.trim() && !n.isHead) P.push({ level: 'warning', message: nm(n) + ' has empty instructions.', nodeId: n.id });
+    if (n.isHead && n.isLead) P.push({ level: 'error', message: nm(n) + ' is the head agent and also marked lead; choose one.', nodeId: n.id });
+    if (n.isHead && !t.edges.some(e => e.from === n.id)) P.push({ level: 'warning', message: nm(n) + ' (head agent) has no outgoing edges, so it delegates to no one.', nodeId: n.id });
+    if (!n.isHead && t.nodes.length > 1 && !t.edges.some(e => e.from === n.id || e.to === n.id)) P.push({ level: 'warning', message: nm(n) + ' is not connected to any other agent.', nodeId: n.id });
+    (names[n.name.trim().toLowerCase()] ||= []).push(n);
+  });
+  Object.values(names).forEach(a => { if (a.length > 1 && a[0].name.trim()) a.forEach(n => P.push({ level: 'warning', message: 'Name ' + nm(n) + ' is used by ' + a.length + ' agents.', nodeId: n.id })); });
+  const seen = new Set();
+  t.edges.forEach(e => {
+    if (!ids.has(e.from) || !ids.has(e.to)) P.push({ level: 'error', message: 'Edge ' + e.id + ' points at a node that does not exist.', edgeId: e.id, fix: 'remove' });
+    else if (e.from === e.to) P.push({ level: 'error', message: 'Edge ' + e.id + ' connects an agent to itself.', edgeId: e.id, fix: 'remove' });
+    const k = e.from + '>' + e.to + ':' + e.kind;
+    if (seen.has(k)) P.push({ level: 'error', message: 'Edge ' + e.id + ' duplicates another ' + e.kind + ' edge between the same agents.', edgeId: e.id, fix: 'remove' });
+    seen.add(k);
+  });
+  return P;
+}
+
+/* ---------- canvas rendering ---------- */
+const vp = $('#viewport'), world = $('#world'), nodesLayer = $('#nodes'), edgeLayer = $('#edgeLayer'), tmpPath = $('#tmp');
+const nodeEls = new Map();
+
+function applyView() {
+  world.style.transform = 'translate(' + view.x + 'px,' + view.y + 'px) scale(' + view.k + ')';
+  const s = 24 * view.k;
+  vp.style.backgroundSize = s + 'px ' + s + 'px';
+  vp.style.backgroundPosition = view.x + 'px ' + view.y + 'px';
+  $('#tZoom').textContent = Math.round(view.k * 100) + '%';
+  scheduleSave();
+}
+function zoomAt(px, py, k) {
+  k = clamp(k, 0.2, 2.5);
+  const wx = (px - view.x) / view.k, wy = (py - view.y) / view.k;
+  view.k = k; view.x = px - wx * k; view.y = py - wy * k; applyView();
+}
+function fitView() {
+  const r = vp.getBoundingClientRect();
+  if (!team.nodes.length) { view = { x: 80, y: 80, k: 1 }; applyView(); return; }
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  team.nodes.forEach(n => { x0 = Math.min(x0, n.x); y0 = Math.min(y0, n.y); x1 = Math.max(x1, n.x + NW); y1 = Math.max(y1, n.y + NH); });
+  const padX = 50, padT = 80, padB = 50, bw = x1 - x0, bh = y1 - y0;
+  const k = clamp(Math.min((r.width - 2 * padX) / bw, (r.height - padT - padB) / bh), 0.25, 1.2);
+  view.k = k; view.x = (r.width - bw * k) / 2 - x0 * k; view.y = padT + (r.height - padT - padB - bh * k) / 2 - y0 * k; applyView();
+}
+function toWorld(cx, cy) { const r = vp.getBoundingClientRect(); return { x: (cx - r.left - view.x) / view.k, y: (cy - r.top - view.y) / view.k }; }
+
+function makeNodeEl(id) {
+  const e = el('div', { class: 'node', tabindex: '0', role: 'button', 'data-id': id });
+  const r = { name: el('div', { class: 'n-name' }), role: el('div', { class: 'n-role' }), meta: el('div', { class: 'n-meta' }),
+    badge: el('span', { class: 'nbadge' }) };
+  e.append(el('span', { class: 'port in', 'aria-hidden': 'true' }), r.name, r.role, r.meta, el('span', { class: 'port out', 'aria-hidden': 'true', title: 'Drag to another agent to connect' }), r.badge);
+  e._r = r; return e;
+}
+function updateNodeEl(e, n) {
+  const r = e._r;
+  e.style.left = n.x + 'px'; e.style.top = n.y + 'px';
+  r.name.textContent = n.name || '(unnamed)';
+  r.role.textContent = n.role || (n.isHead ? 'The main session' : ' ');
+  r.meta.textContent = '';
+  e.classList.toggle('head', !!n.isHead);
+  if (n.isHead) r.meta.append(el('span', { class: 'pill you', text: 'YOU' }));
+  else if (n.isLead) r.meta.append(el('span', { class: 'pill lead', text: 'lead' }));
+  if (!n.isHead) r.meta.append(el('span', { class: 'pill', text: n.model }), el('span', { class: 'pill', text: n.tools === null ? 'all tools' : n.tools.length + ' tools' }));
+  e.classList.toggle('sel', !!sel && sel.type === 'node' && sel.id === n.id);
+  e.classList.toggle('lead', n.isLead && !n.isHead);
+  const ps = problems.filter(p => p.nodeId === n.id);
+  e.classList.toggle('has-issue', ps.length > 0);
+  r.badge.textContent = ps.length; r.badge.classList.toggle('warnonly', !ps.some(p => p.level === 'error'));
+  r.badge.title = ps.map(p => p.message).join('\n');
+  e.setAttribute('aria-label', (n.isHead ? 'Head agent (you) ' : 'Agent ') + (n.name || 'unnamed') + (n.role ? ', ' + n.role : '') + (ps.length ? '. ' + ps.length + ' problem' + (ps.length > 1 ? 's' : '') : '') + '. Press Enter to edit, arrow keys to move.');
+}
+function syncNodes() {
+  const seen = new Set();
+  for (const n of team.nodes) {
+    let e = nodeEls.get(n.id);
+    if (!e) { e = makeNodeEl(n.id); nodeEls.set(n.id, e); nodesLayer.append(e); }
+    updateNodeEl(e, n); seen.add(n.id);
+  }
+  for (const [id, e] of nodeEls) if (!seen.has(id)) { e.remove(); nodeEls.delete(id); }
+}
+const textW = new Map();
+function measure(txt, cls) {
+  const key = cls + '|' + txt;
+  if (textW.has(key)) return textW.get(key);
+  const t = sv('text', { class: cls }); t.textContent = txt; edgeLayer.parentNode.append(t);
+  const w = t.getComputedTextLength(); t.remove(); textW.set(key, w); return w;
+}
+function renderEdges() {
+  edgeLayer.textContent = '';
+  const drawn = team.edges.filter(e => nodeById(e.from) && nodeById(e.to) && e.from !== e.to);
+  const groups = new Map();
+  drawn.forEach(e => { const k = e.from + '>' + e.to; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); });
+  for (const e of drawn) {
+    const a = nodeById(e.from), b = nodeById(e.to), g = groups.get(e.from + '>' + e.to), i = g.indexOf(e);
+    const x0 = a.x + NW + 8, y0 = a.y + NH / 2, x1 = b.x - 8, y1 = b.y + NH / 2;
+    const back = x1 < x0 + 20;
+    const dx = back ? 110 : Math.max(60, Math.abs(x1 - x0) * 0.5);
+    const yoff = (back ? 150 : 0) + (i - (g.length - 1) / 2) * 28;
+    const d = 'M' + x0 + ' ' + y0 + ' C' + (x0 + dx) + ' ' + (y0 + yoff) + ' ' + (x1 - dx) + ' ' + (y1 + yoff) + ' ' + x1 + ' ' + y1;
+    const isSel = !!sel && sel.type === 'edge' && sel.id === e.id, neg = e.polarity === 'negative';
+    const gEl = sv('g', { class: 'edge k-' + e.kind + (neg ? ' neg' : '') + (isSel ? ' sel' : ''), 'data-edge-id': e.id });
+    const ti = sv('title'); ti.textContent = e.kind + (neg ? ' (inhibitor)' : '') + ': ' + (a.name || a.id) + ' to ' + (b.name || b.id) + (e.description ? '. ' + e.description : ''); gEl.append(ti);
+    gEl.append(sv('path', { class: 'hit', d }));
+    if (isSel) gEl.append(sv('path', { class: 'halo', d }));
+    const mk = 'url(#' + (isSel ? 'ahs' : 'ah') + ')';
+    const vis = sv('path', { class: 'vis', d });
+    if (!neg) { vis.setAttribute('marker-end', mk); if (e.kind === 'debate') vis.setAttribute('marker-start', mk); }
+    gEl.append(vis);
+    if (neg) {
+      // flat bar perpendicular to the end tangent, centred just outside the node border, ~arrowhead size
+      const bar = (px, py, tx, ty) => { const l = Math.hypot(tx, ty) || 1, ux = tx / l, uy = ty / l, nx = -uy, ny = ux, cx = px - ux * 2.5, cy = py - uy * 2.5;
+        return sv('path', { class: 'bar', d: 'M' + (cx + nx * 9) + ' ' + (cy + ny * 9) + ' L' + (cx - nx * 9) + ' ' + (cy - ny * 9) }); };
+      gEl.append(bar(x1, y1, dx, -yoff));
+      if (e.kind === 'debate') gEl.append(bar(x0, y0, -dx, -yoff));
+    }
+    const txt = e.label || e.kind, cls = e.label ? '' : 'kindonly';
+    const w = measure(txt, cls) + 16, mx = (x0 + x1) / 2, my = (y0 + y1) / 2 + 0.75 * yoff;
+    gEl.append(sv('rect', { class: 'chip', x: mx - w / 2, y: my - 10, width: w, height: 20, rx: 10 }));
+    const t = sv('text', { class: cls, x: mx, y: my, dy: '.35em' }); t.textContent = txt; gEl.append(t);
+    edgeLayer.append(gEl);
+  }
+}
+function renderAll() {
+  problems = validate(team);
+  syncNodes(); renderEdges(); updateChrome();
+}
+function updateChrome() {
+  $('#btnUndo').disabled = !undo.length; $('#btnRedo').disabled = !redo.length;
+  const errs = problems.filter(p => p.level === 'error').length;
+  const b = $('#issuesBtn');
+  b.textContent = problems.length ? 'Checks: ' + problems.length + (errs ? ' (' + errs + ' error' + (errs > 1 ? 's' : '') + ')' : '') : 'Checks: OK';
+  b.classList.toggle('has', problems.length > 0);
+  $('#empty').hidden = team.nodes.length > 0;
+  $('#hint').style.display = team.edges.length ? 'none' : '';
+  const sn = sel && sel.type === 'node' ? nodeById(sel.id) : null, tip = sn && sn.isHead ? 'The head agent is you, not a spawned agent, so it cannot be saved as a profile.' : '';
+  $('#btnSaveProf').disabled = !sn || !!sn.isHead; $('#btnSaveProf').title = tip; $('#btnSaveProf').parentNode.title = tip;
+}
+
+/* ---------- mutations ---------- */
+function freeSlot(px, py) {
+  const gx = NW + 40, gy = NH + 30, cands = [];
+  for (let i = -6; i <= 6; i++) for (let j = -6; j <= 6; j++) cands.push([i, j]);
+  cands.sort((a, b) => (Math.abs(a[0]) + Math.abs(a[1])) - (Math.abs(b[0]) + Math.abs(b[1])) || Math.abs(a[1]) - Math.abs(b[1]) || a[0] - b[0]);
+  for (const [i, j] of cands) {
+    const x = Math.round(px + i * gx), y = Math.round(py + j * gy);
+    if (!team.nodes.some(n => x < n.x + NW + 16 && x + NW + 16 > n.x && y < n.y + NH + 16 && y + NH + 16 > n.y)) return { x, y };
+  }
+  return { x: px, y: py };
+}
+function spawnPos() {
+  const r = vp.getBoundingClientRect();
+  const p = toWorld(r.left + r.width / 2, r.top + r.height / 2);
+  return { x: Math.round(p.x - NW / 2), y: Math.round(p.y - NH / 2) };
+}
+function spawnNode(prof, pos) {
+  if (team.nodes.length >= LIMITS.nodes) { toast('A team can have at most ' + LIMITS.nodes + ' agents.'); return null; }
+  pos = freeSlot(...Object.values(pos || spawnPos()));
+  let id;
+  mutate(() => {
+    id = nextId('n', team.nodes);
+    const n = prof ? { id, name: prof.name, role: prof.role || '', description: prof.description || '', model: MODELS.includes(prof.model) ? prof.model : 'inherit',
+      tools: Array.isArray(prof.tools) ? prof.tools.slice() : null, isLead: false, profile: prof.slug, x: Math.round(pos.x), y: Math.round(pos.y) }
+      : { id, name: 'Agent ' + (team.nodes.length + 1), role: '', description: '', model: 'inherit', tools: null, isLead: false, x: Math.round(pos.x), y: Math.round(pos.y) };
+    team.nodes.push(n);
+  });
+  setSelection({ type: 'node', id });
+  if (!prof) focusInspector();
+  return id;
+}
+function centerOn(n) { const r = vp.getBoundingClientRect(); view.x = r.width / 2 - (n.x + NW / 2) * view.k; view.y = r.height / 2 - (n.y + NH / 2) * view.k; applyView(); }
+function spawnHead(pos) {
+  const ex = team.nodes.find(n => n.isHead);
+  if (ex) { setSelection({ type: 'node', id: ex.id }); centerOn(ex); const el0 = nodeEls.get(ex.id); if (el0) el0.focus({ preventScroll: true }); toast('The head agent is already on the canvas; selected it.'); return ex.id; }
+  if (team.nodes.length >= LIMITS.nodes) { toast('A team can have at most ' + LIMITS.nodes + ' agents.'); return null; }
+  const p = freeSlot(...Object.values(pos || spawnPos()));
+  let id;
+  mutate(() => { id = nextId('n', team.nodes); team.nodes.push({ id, name: 'You (head agent)', role: '', description: '', model: 'inherit', tools: null, isLead: false, isHead: true, x: p.x, y: p.y }); });
+  setSelection({ type: 'node', id });
+  return id;
+}
+function findEdge(from, to, kind) {
+  return team.edges.find(e => e.kind === kind && ((e.from === from && e.to === to) || (kind === 'debate' && e.from === to && e.to === from)));
+}
+function tryAddEdge(from, to, kind, pol) {
+  if (from === to) { toast('An agent cannot be connected to itself.'); return null; }
+  if (team.edges.length >= LIMITS.edges) { toast('A team can have at most ' + LIMITS.edges + ' edges.'); return null; }
+  const ex = findEdge(from, to, kind);
+  if (ex) { toast('Already connected by a ' + kind + ' edge; selected it.'); setSelection({ type: 'edge', id: ex.id }); return null; }
+  let id;
+  mutate(() => { id = nextId('e', team.edges); const ne = { id, from, to, kind, label: '', description: '' }; if ((pol || lastPol) === 'negative') ne.polarity = 'negative'; team.edges.push(ne); });
+  return id;
+}
+function deleteSelection() {
+  if (!sel) return;
+  const s = sel;
+  mutate(() => {
+    if (s.type === 'node') { team.nodes = team.nodes.filter(n => n.id !== s.id); team.edges = team.edges.filter(e => e.from !== s.id && e.to !== s.id); }
+    else team.edges = team.edges.filter(e => e.id !== s.id);
+  });
+  setSelection(null);
+}
+function duplicateNode(id) {
+  const n = nodeById(id); if (!n) return;
+  if (n.isHead) { toast('There can be only one head agent.'); return; }
+  let nid;
+  mutate(() => { nid = nextId('n', team.nodes); const c = clone(n); c.id = nid; c.name = n.name + ' copy'; c.isLead = false; c.x += 30; c.y += 30; team.nodes.push(c); });
+  setSelection({ type: 'node', id: nid });
+}
+function loadTeam(raw, opts = {}) {
+  const rep = {};
+  const t = normalize(raw, rep);
+  mutate(() => { team = t; });
+  savedRef = opts.ref || null;
+  if (rep.needLayout) autoLayout(true);
+  sel = null; syncTitle(); rebuildInspector(); renderAll();
+  requestAnimationFrame(fitView);
+  const parts = [opts.prefix || ''];
+  if (rep.dropped.length) parts.push('Dropped ' + rep.dropped.length + ' edge(s): ' + rep.dropped.slice(0, 3).join('; ') + (rep.dropped.length > 3 ? '; and ' + (rep.dropped.length - 3) + ' more.' : '.'));
+  if (rep.notes.length) parts.push('Note: ' + rep.notes.slice(0, 3).join('; ') + (rep.notes.length > 3 ? '; and ' + (rep.notes.length - 3) + ' more.' : '.'));
+  const msg = parts.join(' ').trim();
+  if (msg) toast(msg, rep.dropped.length || rep.notes.length ? 12000 : 3200);
+  return rep;
+}
+
+/* ---------- auto layout ---------- */
+function autoLayout(silent) {
+  const ns = team.nodes; if (!ns.length) return;
+  const idx = new Map(ns.map((n, i) => [n.id, i]));
+  const adj = ns.map(() => []), indeg = ns.map(() => 0);
+  team.edges.forEach(e => { if (idx.has(e.from) && idx.has(e.to) && e.from !== e.to) { adj[idx.get(e.from)].push(idx.get(e.to)); indeg[idx.get(e.to)]++; } });
+  const state = ns.map(() => 0), back = new Set();
+  const dfs = u => { state[u] = 1; for (const v of adj[u]) { if (state[v] === 1) back.add(u + '>' + v); else if (state[v] === 0) dfs(v); } state[u] = 2; };
+  ns.forEach((n, i) => { if (n.isHead && !state[i]) dfs(i); });
+  ns.forEach((_, i) => { if (!indeg[i] && !state[i]) dfs(i); });
+  ns.forEach((_, i) => { if (!state[i]) dfs(i); });
+  const fwd = ns.map((_, u) => adj[u].filter(v => !back.has(u + '>' + v)));
+  const din = ns.map(() => 0); fwd.forEach(a => a.forEach(v => din[v]++));
+  const layer = ns.map(() => 0), q = [];
+  din.forEach((d, i) => { if (!d) q.push(i); });
+  while (q.length) { const u = q.shift(); for (const v of fwd[u]) { layer[v] = Math.max(layer[v], layer[u] + 1); if (--din[v] === 0) q.push(v); } }
+  const L = Math.max(...layer) + 1, cols = Array.from({ length: L }, () => []);
+  ns.forEach((_, i) => cols[layer[i]].push(i));
+  const preds = ns.map(() => []); fwd.forEach((a, u) => a.forEach(v => preds[v].push(u)));
+  const pos = new Array(ns.length).fill(0);
+  cols.forEach(c => c.forEach((u, i) => { pos[u] = i; }));
+  for (let pass = 0; pass < 3; pass++) for (let l = 1; l < L; l++) {
+    const bary = u => preds[u].length ? preds[u].reduce((s, p) => s + pos[p], 0) / preds[u].length : pos[u];
+    cols[l].sort((a, b) => bary(a) - bary(b) || a - b); cols[l].forEach((u, i) => { pos[u] = i; });
+  }
+  const gx = NW + 110, gy = NH + 44, maxN = Math.max(...cols.map(c => c.length));
+  const run = () => { cols.forEach((c, l) => { const off = (maxN - c.length) * gy / 2; c.forEach((u, i) => { ns[u].x = 60 + l * gx; ns[u].y = 60 + off + i * gy; }); }); };
+  if (silent) { run(); return; }
+  mutate(run);
+  fitView();
+}
+
+/* ---------- selection and inspector ---------- */
+function setSelection(s) {
+  const same = (!s && !sel) || (s && sel && s.type === sel.type && s.id === sel.id);
+  sel = s;
+  if (!same) rebuildInspector();
+  renderAll();
+}
+function focusInspector() {
+  const f = $('#inspBody input[type=text],#inspBody textarea'); if (!f) return;
+  document.body.classList.remove('insp-collapsed'); syncToggles();
+  f.focus(); if (f.select) f.select();
+}
+function setField(kind, id, field, value) {
+  mutate(() => { const o = kind === 'n' ? nodeById(id) : edgeById(id); if (o) o[field] = value; }, kind + ':' + id + ':' + field);
+}
+function fld(label, input) { return el('label', { class: 'f' }, el('span', { text: label }), input); }
+function textInput(kind, id, field, val, o = {}) {
+  const i = el('input', { type: 'text', value: val, maxlength: o.max, placeholder: o.ph });
+  i.value = val; i.addEventListener('input', () => setField(kind, id, field, i.value)); return i;
+}
+function areaInput(kind, id, field, val, rows) {
+  const t = el('textarea', { rows }); t.value = val; t.addEventListener('input', () => setField(kind, id, field, t.value)); return t;
+}
+function rebuildInspector() {
+  const body = $('#inspBody'); body.textContent = '';
+  if (sel && sel.type === 'node' && nodeById(sel.id)) { $('#inspTitle').textContent = 'Agent'; buildNodeInsp(nodeById(sel.id), body); }
+  else if (sel && sel.type === 'edge' && edgeById(sel.id)) { $('#inspTitle').textContent = 'Edge'; buildEdgeInsp(edgeById(sel.id), body); }
+  else { sel = null; $('#inspTitle').textContent = 'Team'; buildTeamInsp(body); }
+}
+function buildTeamInsp(body) {
+  const slug = el('input', { type: 'text', maxlength: 63, placeholder: slugify(team.title) || 'file-name' }); slug.value = team.name;
+  slug.addEventListener('input', () => mutate(() => { team.name = slug.value; }, 'team:name'));
+  const desc = el('textarea', { rows: 4 }); desc.value = team.description;
+  desc.addEventListener('input', () => mutate(() => { team.description = desc.value; }, 'team:desc'));
+  const rounds = el('input', { type: 'number', min: 0, max: 10 }); rounds.value = team.settings.maxReviewRounds;
+  rounds.addEventListener('input', () => { if (rounds.value === '' || !Number.isFinite(+rounds.value)) return; const v = clamp(Math.round(+rounds.value), 0, 10); mutate(() => { team.settings.maxReviewRounds = v; }, 'team:rounds'); });
+  const par = el('input', { type: 'checkbox' }); par.checked = team.settings.parallel;
+  par.addEventListener('change', () => mutate(() => { team.settings.parallel = par.checked; }));
+  body.append(
+    el('p', { class: 'mute small', style: 'margin:0', text: 'Nothing selected. Click an agent or an edge to edit it. The team title is in the top bar.' }),
+    fld('File name (slug)', slug), fld('Description', desc),
+    el('div', { class: 'sec' }, el('h3', { text: 'Settings' }),
+      fld('Maximum review rounds (review and debate loops)', rounds),
+      el('label', { class: 'chk' }, par, 'Run independent agents in parallel')),
+    el('div', { class: 'sec' }, el('h3', { text: 'Graph' }), el('div', { class: 'mute', text: team.nodes.length + ' agents, ' + team.edges.length + ' edges' })));
+}
+function buildNodeInsp(n, body) {
+  const id = n.id;
+  const model = el('select');
+  MODELS.forEach(m => model.append(el('option', { value: m, text: m })));
+  model.value = n.model; model.addEventListener('change', () => setField('n', id, 'model', model.value));
+  const lead = el('input', { type: 'checkbox' }); lead.checked = n.isLead;
+  lead.addEventListener('change', () => { mutate(() => { team.nodes.forEach(x => { x.isLead = false; }); nodeById(id).isLead = lead.checked; }); });
+  // tools
+  const inh = el('input', { type: 'checkbox' }); inh.checked = n.tools === null;
+  const chips = el('div', { class: 'chips', role: 'group', 'aria-label': 'Allowed tools' });
+  const known = TOOLS.slice(); (n.tools || []).forEach(t => { if (!known.includes(t)) known.push(t); });
+  const addChip = t => {
+    const b = el('button', { type: 'button', 'aria-pressed': String((nodeById(id).tools || []).includes(t)), text: t });
+    b.addEventListener('click', () => {
+      const cur = nodeById(id).tools || []; const on = !cur.includes(t);
+      const next = on ? known.filter(k => cur.includes(k) || k === t) : cur.filter(k => k !== t);
+      b.setAttribute('aria-pressed', String(on)); setField('n', id, 'tools', next);
+    });
+    chips.append(b);
+  };
+  known.forEach(addChip);
+  const custom = el('input', { type: 'text', placeholder: 'Add a tool name, press Enter', 'aria-label': 'Add custom tool' });
+  custom.addEventListener('keydown', ev => {
+    if (ev.key !== 'Enter') return; ev.preventDefault();
+    const t = custom.value.trim(); if (!t || known.includes(t)) { custom.value = ''; return; }
+    known.push(t); addChip(t); custom.value = '';
+    chips.lastChild.click();
+  });
+  const toolsWrap = el('div', { class: 'conn' }, chips, custom);
+  toolsWrap.hidden = inh.checked;
+  inh.addEventListener('change', () => { toolsWrap.hidden = inh.checked; setField('n', id, 'tools', inh.checked ? null : READ_ONLY.slice());
+    chips.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(!inh.checked && READ_ONLY.includes(b.textContent)))); });
+  // connections
+  const conn = el('div', { class: 'conn' });
+  team.edges.filter(e => e.from === id || e.to === id).forEach(e => {
+    const o = nodeById(e.from === id ? e.to : e.from);
+    conn.append(el('button', { type: 'button', onclick: () => setSelection({ type: 'edge', id: e.id }),
+      text: (e.from === id ? 'to ' : 'from ') + (o ? o.name : '?') + ' (' + e.kind + (e.label ? ': ' + e.label : '') + ')' }));
+  });
+  if (!conn.children.length) conn.append(el('span', { class: 'mute small', text: 'No edges yet.' }));
+  const others = team.nodes.filter(x => x.id !== id);
+  const tgt = el('select', { 'aria-label': 'Connect to agent' });
+  others.forEach(o => tgt.append(el('option', { value: o.id, text: o.name })));
+  const kind = el('select', { 'aria-label': 'Edge kind' }); KINDS.forEach(k => kind.append(el('option', { value: k, text: k }))); kind.value = lastKind;
+  const addBtn = el('button', { type: 'button', text: 'Add edge', disabled: !others.length, onclick: () => {
+    const eid = tryAddEdge(id, tgt.value, kind.value, pol.value); lastKind = kind.value; lastPol = pol.value; $('#tPol').value = lastPol; if (eid) { setSelection({ type: 'edge', id: eid }); }
+  } });
+  const pol = el('select', { 'aria-label': 'Edge polarity' }); [['positive', 'Positive arrow'], ['negative', 'Negative inhibitor']].forEach(([v, t]) => pol.append(el('option', { value: v, text: t }))); pol.value = lastPol;
+  const connSec = el('div', { class: 'sec' }, el('h3', { text: 'Connections' }), conn, el('div', { class: 'row' }, tgt, kind, pol, addBtn));
+  if (n.isHead) {
+    body.append(
+      el('p', { class: 'mute small', style: 'margin:0', text: 'This node is you: the main session you talk to. It is never spawned as a subagent; it delegates along its outgoing edges.' }),
+      fld('Name', textInput('n', id, 'name', n.name, { max: 60 })),
+      fld('Role (optional)', textInput('n', id, 'role', n.role, { max: 120 })),
+      fld('Standing instructions for the head agent (optional)', areaInput('n', id, 'description', n.description, 7)),
+      connSec,
+      el('div', { class: 'row sec' }, el('button', { type: 'button', class: 'danger', text: 'Delete head agent', onclick: deleteSelection })));
+    return;
+  }
+  body.append(
+    fld('Name', textInput('n', id, 'name', n.name, { max: 60 })),
+    fld('Role (one line)', textInput('n', id, 'role', n.role, { max: 120 })),
+    fld('Instructions (the agent\'s system prompt, Markdown)', areaInput('n', id, 'description', n.description, 9)),
+    fld('Model', model),
+    el('label', { class: 'chk' }, lead, 'Lead agent (at most one; otherwise the main session leads)'),
+    el('div', { class: 'sec' }, el('h3', { text: 'Tools' }), el('label', { class: 'chk' }, inh, 'Inherit all tools'), toolsWrap),
+    connSec,
+    el('div', { class: 'row sec' },
+      el('button', { type: 'button', text: 'Save as profile', onclick: openProfileDialog }),
+      el('button', { type: 'button', text: 'Duplicate', onclick: () => duplicateNode(id) }),
+      el('button', { type: 'button', class: 'danger', text: 'Delete agent', onclick: deleteSelection })),
+    n.profile ? el('p', { class: 'mute small', style: 'margin:0', text: 'Origin profile: ' + n.profile }) : null);
+}
+function setPolarity(id, v) {
+  mutate(() => { const x = edgeById(id); if (!x) return; if (v === 'negative') x.polarity = 'negative'; else delete x.polarity; });
+}
+function flipPolarity(id) {
+  const x = edgeById(id); if (!x) return;
+  const v = x.polarity === 'negative' ? 'positive' : 'negative';
+  setPolarity(id, v); rebuildInspector(); toast('Edge is now ' + (v === 'negative' ? 'negative (inhibitor)' : 'positive (arrow)') + '.');
+}
+function buildEdgeInsp(e, body) {
+  const id = e.id, a = nodeById(e.from), b = nodeById(e.to);
+  const kind = el('select');
+  KINDS.forEach(k => kind.append(el('option', { value: k, text: k + ': ' + KIND_HELP[k] })));
+  kind.value = e.kind;
+  kind.addEventListener('change', () => {
+    const ex = findEdge(e.from, e.to, kind.value);
+    if (ex && ex.id !== id) { toast('Another ' + kind.value + ' edge already joins these agents.'); kind.value = edgeById(id).kind; return; }
+    lastKind = kind.value; $('#tKind').value = lastKind; setField('e', id, 'kind', kind.value); renderAll();
+  });
+  const label = textInput('e', id, 'label', e.label, { max: 24, ph: 'Short label drawn on the edge' });
+  const cnt = el('span', { class: 'count', text: e.label.length + '/24' });
+  label.addEventListener('input', () => { cnt.textContent = label.value.length + '/24'; });
+  body.append(
+    el('div', { class: 'row' },
+      el('button', { type: 'button', text: a ? a.name : '?', onclick: () => a && setSelection({ type: 'node', id: a.id }) }),
+      el('span', { 'aria-hidden': 'true', text: '→' }),
+      el('button', { type: 'button', text: b ? b.name : '?', onclick: () => b && setSelection({ type: 'node', id: b.id }) })),
+    fld('Kind', kind),
+    (() => {
+      const cur = e.polarity === 'negative' ? 'negative' : 'positive';
+      const seg = el('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Edge polarity' });
+      [['positive', 'Positive arrow'], ['negative', 'Negative inhibitor']].forEach(([v, t]) => {
+        const r = el('input', { type: 'radio', name: 'pol-' + id, value: v }); r.checked = cur === v;
+        r.addEventListener('change', () => { if (r.checked) { setPolarity(id, v); lastPol = v; $('#tPol').value = v; } });
+        seg.append(el('label', null, r, el('span', { text: t })));
+      });
+      return el('div', { class: 'f' }, el('span', { text: 'Polarity (illustration only; not used in the brief). Shortcut: P' }), seg);
+    })(),
+    el('div', { class: 'f' }, fld('Label', label), cnt),
+    fld('Protocol: what passes between them, and any ordering rule', areaInput('e', id, 'description', e.description, 6)),
+    el('div', { class: 'row sec' },
+      el('button', { type: 'button', text: 'Reverse direction', onclick: () => {
+        if (findEdge(e.to, e.from, edgeById(id).kind)) { toast('A ' + e.kind + ' edge already runs the other way.'); return; }
+        mutate(() => { const x = edgeById(id); [x.from, x.to] = [x.to, x.from]; }); rebuildInspector();
+      } }),
+      el('button', { type: 'button', class: 'danger', text: 'Delete edge', onclick: deleteSelection })));
+}
+
+/* ---------- pointer interaction ---------- */
+function snapV(v, off) { return snap && !off ? Math.round(v / 20) * 20 : Math.round(v); }
+vp.addEventListener('pointerdown', ev => {
+  if (ev.target.closest('.tools,.hint')) return;
+  if (drag) return;
+  const ae = document.activeElement; if (ae && ae !== document.body && ae !== vp && !ae.classList.contains('node')) ae.blur();
+  if (!ev.target.closest('.node')) vp.focus({ preventScroll: true });
+  if (ev.pointerType === 'mouse' && ev.button !== 0 && ev.button !== 1) return;
+  const portEl = ev.target.closest('.port.out'), nodeEl = ev.target.closest('.node'), edgeEl = ev.target.closest('[data-edge-id]');
+  const panning = ev.button === 1 || spaceDown || (!portEl && !nodeEl && !edgeEl);
+  const startPan = () => { drag = { type: 'pan', id: ev.pointerId, sx: ev.clientX, sy: ev.clientY, vx: view.x, vy: view.y, moved: false }; vp.classList.add('panning'); };
+  if (panning) { ev.preventDefault(); vp.setPointerCapture(ev.pointerId); document.body.classList.add('dragging'); startPan(); return; }
+  if (portEl && nodeEl) {
+    ev.preventDefault(); vp.setPointerCapture(ev.pointerId); document.body.classList.add('dragging');
+    drag = { type: 'connect', id: ev.pointerId, from: nodeEl.dataset.id, target: null }; return;
+  }
+  if (nodeEl) {
+    const n = nodeById(nodeEl.dataset.id); if (!n) return;
+    ev.preventDefault(); vp.setPointerCapture(ev.pointerId); document.body.classList.add('dragging');
+    setSelection({ type: 'node', id: n.id });
+    nodeEl.focus({ preventScroll: true });
+    const w = toWorld(ev.clientX, ev.clientY);
+    drag = { type: 'node', id: ev.pointerId, nid: n.id, ox: n.x, oy: n.y, wx: w.x, wy: w.y, pre: snapshot(), moved: false, sx: ev.clientX, sy: ev.clientY };
+    return;
+  }
+  if (edgeEl) { ev.preventDefault(); setSelection({ type: 'edge', id: edgeEl.dataset.edgeId }); }
+});
+vp.addEventListener('pointermove', ev => {
+  if (!drag || ev.pointerId !== drag.id) return;
+  if (drag.type === 'pan') {
+    const dx = ev.clientX - drag.sx, dy = ev.clientY - drag.sy;
+    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+    view.x = drag.vx + dx; view.y = drag.vy + dy; applyView();
+  } else if (drag.type === 'node') {
+    if (Math.abs(ev.clientX - drag.sx) + Math.abs(ev.clientY - drag.sy) > 3) drag.moved = true;
+    if (!drag.moved) return;
+    const w = toWorld(ev.clientX, ev.clientY), n = nodeById(drag.nid);
+    n.x = snapV(drag.ox + w.x - drag.wx, ev.altKey); n.y = snapV(drag.oy + w.y - drag.wy, ev.altKey);
+    updateNodeEl(nodeEls.get(n.id), n); renderEdges();
+  } else if (drag.type === 'connect') {
+    const a = nodeById(drag.from), w = toWorld(ev.clientX, ev.clientY);
+    const x0 = a.x + NW + 8, y0 = a.y + NH / 2, dx = Math.max(50, Math.abs(w.x - x0) / 2);
+    tmpPath.setAttribute('d', 'M' + x0 + ' ' + y0 + ' C' + (x0 + dx) + ' ' + y0 + ' ' + (w.x - dx) + ' ' + w.y + ' ' + w.x + ' ' + w.y);
+    tmpPath.style.display = 'block';
+    const t = document.elementFromPoint(ev.clientX, ev.clientY), ne = t && t.closest ? t.closest('.node') : null;
+    const tid = ne ? ne.dataset.id : null;
+    if (tid !== drag.target) {
+      if (drag.target && nodeEls.get(drag.target)) nodeEls.get(drag.target).classList.remove('drop-ok', 'drop-bad');
+      drag.target = tid;
+    }
+    if (tid && nodeEls.get(tid)) { const bad = tid === drag.from; nodeEls.get(tid).classList.toggle('drop-bad', bad); nodeEls.get(tid).classList.toggle('drop-ok', !bad); }
+  }
+});
+function endDrag(ev, cancel) {
+  if (!drag || ev.pointerId !== drag.id) return;
+  const d = drag; drag = null;
+  document.body.classList.remove('dragging'); vp.classList.remove('panning');
+  try { vp.releasePointerCapture(ev.pointerId); } catch { /* ignore */ }
+  if (d.type === 'pan' && !d.moved && !cancel) {
+    const now = Date.now();
+    if (lastEmptyClick && now - lastEmptyClick.t < 400 && Math.abs(lastEmptyClick.x - ev.clientX) < 8 && Math.abs(lastEmptyClick.y - ev.clientY) < 8) {
+      lastEmptyClick = null; const w = toWorld(ev.clientX, ev.clientY); spawnNode(null, { x: snapV(w.x - NW / 2), y: snapV(w.y - NH / 2) });
+    } else { lastEmptyClick = { t: now, x: ev.clientX, y: ev.clientY }; setSelection(null); }
+  } else if (d.type === 'node') {
+    if (d.moved) {
+      if (cancel) { const n = nodeById(d.nid); n.x = d.ox; n.y = d.oy; }
+      else if (snapshot() !== d.pre) pushUndo(d.pre);
+      afterChange();
+    } else if (!cancel) {
+      const now = Date.now();
+      if (lastNodeClick && lastNodeClick.id === d.nid && now - lastNodeClick.t < 400) { lastNodeClick = null; focusInspector(); } else lastNodeClick = { id: d.nid, t: now };
+    }
+  } else if (d.type === 'connect') {
+    tmpPath.style.display = 'none';
+    nodeEls.forEach(e => e.classList.remove('drop-ok', 'drop-bad'));
+    if (!cancel && d.target) {
+      const k = $('#tKind').value;
+      const eid = tryAddEdge(d.from, d.target, k, $('#tPol').value);
+      if (eid) setSelection({ type: 'edge', id: eid });
+    }
+  }
+}
+let lastEmptyClick = null, lastNodeClick = null;
+vp.addEventListener('pointerup', ev => endDrag(ev, false));
+vp.addEventListener('pointercancel', ev => endDrag(ev, true));
+vp.addEventListener('wheel', ev => {
+  ev.preventDefault();
+  const r = vp.getBoundingClientRect();
+  const dy = ev.deltaY * (ev.deltaMode === 1 ? 16 : 1);
+  zoomAt(ev.clientX - r.left, ev.clientY - r.top, view.k * Math.exp(-dy * (ev.ctrlKey ? 0.012 : 0.0016)));
+}, { passive: false });
+vp.addEventListener('dragover', ev => { if ((ev.dataTransfer.types || []).includes('text/plain')) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy'; } });
+vp.addEventListener('drop', ev => {
+  const t = ev.dataTransfer.getData('text/plain');
+  if (t === 'ats-head') { ev.preventDefault(); const w0 = toWorld(ev.clientX, ev.clientY); spawnHead({ x: snapV(w0.x - NW / 2), y: snapV(w0.y - NH / 2) }); return; }
+  if (!t.startsWith('ats-profile:')) return;
+  ev.preventDefault();
+  const p = profileList().find(x => x.slug === t.slice(12)); if (!p) return;
+  const w = toWorld(ev.clientX, ev.clientY); spawnNode(p, { x: snapV(w.x - NW / 2), y: snapV(w.y - NH / 2) });
+});
+vp.addEventListener('keydown', ev => {
+  const nodeEl = ev.target.closest && ev.target.closest('.node');
+  if (!nodeEl || ev.target !== nodeEl) return;
+  const id = nodeEl.dataset.id;
+  if (ev.key === 'Enter') { ev.preventDefault(); setSelection({ type: 'node', id }); focusInspector(); }
+  else if (ev.key.startsWith('Arrow') && !ev.metaKey && !ev.ctrlKey) {
+    ev.preventDefault();
+    const s = ev.shiftKey ? 40 : 10, dx = ev.key === 'ArrowLeft' ? -s : ev.key === 'ArrowRight' ? s : 0, dy = ev.key === 'ArrowUp' ? -s : ev.key === 'ArrowDown' ? s : 0;
+    mutate(() => { const n = nodeById(id); n.x += dx; n.y += dy; }, 'nudge:' + id);
+  } else if (ev.key === ' ') { ev.preventDefault(); setSelection({ type: 'node', id }); }
+});
+vp.addEventListener('focusin', ev => { const n = ev.target.closest && ev.target.closest('.node'); if (n && !(sel && sel.type === 'node' && sel.id === n.dataset.id) && !drag) setSelection({ type: 'node', id: n.dataset.id }); });
+
+document.addEventListener('keydown', ev => {
+  const mod = ev.metaKey || ev.ctrlKey, k = ev.key;
+  if (document.querySelector('dialog[open]')) return;
+  if (mod && k.toLowerCase() === 's') { ev.preventDefault(); saveToClaude(); return; }
+  if (mod && k.toLowerCase() === 'z' && !isTyping(ev.target)) { ev.preventDefault(); ev.shiftKey ? doRedo() : doUndo(); return; }
+  if (mod && k.toLowerCase() === 'y' && !isTyping(ev.target)) { ev.preventDefault(); doRedo(); return; }
+  if (mod && k.toLowerCase() === 'd' && !isTyping(ev.target) && sel && sel.type === 'node') { ev.preventDefault(); duplicateNode(sel.id); return; }
+  if ((k === 'p' || k === 'P') && !mod && !ev.altKey && !isTyping(ev.target) && sel && sel.type === 'edge') { ev.preventDefault(); flipPolarity(sel.id); return; }
+  if (k === 'Escape') {
+    if (drag && drag.type === 'connect') { tmpPath.style.display = 'none'; nodeEls.forEach(e => e.classList.remove('drop-ok', 'drop-bad')); document.body.classList.remove('dragging'); drag = null; return; }
+    if (isTyping(ev.target)) { ev.target.blur(); return; }
+    setSelection(null); return;
+  }
+  if ((k === 'Delete' || k === 'Backspace') && !isTyping(ev.target) && (ev.target === document.body || vp.contains(ev.target)) && sel) { ev.preventDefault(); deleteSelection(); return; }
+  if (k === ' ' && !isTyping(ev.target) && (ev.target === document.body || ev.target === vp)) { spaceDown = true; vp.classList.add('pan'); ev.preventDefault(); }
+});
+document.addEventListener('keyup', ev => { if (ev.key === ' ') { spaceDown = false; vp.classList.remove('pan'); } });
+window.addEventListener('blur', () => { spaceDown = false; vp.classList.remove('pan'); });
+
+/* ---------- profiles ---------- */
+function localProfiles() { return store.get('ats.profiles', []); }
+function profileList() {
+  const m = new Map();
+  BUILTIN_PROFILES.forEach(p => m.set(p.slug, Object.assign({ src: 'built-in' }, p)));
+  localProfiles().forEach(p => m.set(p.slug, Object.assign({}, p, { src: 'local' })));
+  server.profiles.forEach(p => m.set(p.slug, Object.assign({}, p, { src: 'server' })));
+  return [...m.values()];
+}
+function renderPalette() {
+  const ul = $('#profList'), f = $('#profFilter').value.trim().toLowerCase();
+  ul.textContent = '';
+  const hb = el('button', { type: 'button', class: 'prof headitem', draggable: 'true', title: 'Adds the node that represents you, the main session' },
+    el('b', { text: 'You (head agent)' }), el('span', { class: 'expl', text: 'The main session you talk to. It delegates to the agents below and is never spawned. One per team.' }));
+  hb.addEventListener('click', () => spawnHead());
+  hb.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', 'ats-head'); ev.dataTransfer.effectAllowed = 'copy'; });
+  ul.append(el('li', null, hb));
+  profileList().filter(p => !f || (p.name + ' ' + p.role + ' ' + p.slug).toLowerCase().includes(f)).forEach(p => {
+    const b = el('button', { type: 'button', class: 'prof', draggable: 'true', title: (p.description || '').split('\n')[0] },
+      el('b', { text: p.name }), el('span', { text: p.role || p.slug }), el('span', { class: 'tag', text: p.src }));
+    b.addEventListener('click', () => spawnNode(p));
+    b.addEventListener('dragstart', ev => { ev.dataTransfer.setData('text/plain', 'ats-profile:' + p.slug); ev.dataTransfer.effectAllowed = 'copy'; });
+    const li = el('li', null, b);
+    if (p.src !== 'built-in') li.append(el('button', { type: 'button', class: 'danger', 'aria-label': 'Delete profile ' + p.name, title: 'Delete profile', text: '×', onclick: () => deleteProfile(p) }));
+    ul.append(li);
+  });
+}
+async function deleteProfile(p) {
+  if (!confirm('Delete profile "' + p.name + '" (' + p.src + ')?')) return;
+  try {
+    if (p.src === 'server') { await api('DELETE', '/api/profiles/' + encodeURIComponent(p.slug)); await refreshServer(); }
+    else store.set('ats.profiles', localProfiles().filter(x => x.slug !== p.slug));
+    renderPalette(); toast('Profile deleted.');
+  } catch (e) { toast('Could not delete: ' + e.message, 5000); }
+}
+function openProfileDialog() {
+  if (!(sel && sel.type === 'node')) return;
+  const n = nodeById(sel.id); if (!n) return;
+  if (n.isHead) { toast('The head agent cannot be saved as a profile.'); return; }
+  const inp = $('#profSlug'); inp.value = slugify(n.profile || n.name);
+  const note = () => { const ex = profileList().find(p => p.slug === inp.value); $('#profNote').textContent = ex ? 'A ' + ex.src + ' profile with this slug exists and will be replaced.' : 'Saved to ' + (server.up ? 'the Claude store (server)' : 'this browser (localStorage)') + '.'; };
+  inp.oninput = note; note();
+  $('#dlgProf').showModal(); inp.focus(); inp.select();
+}
+$('#profForm').addEventListener('submit', async () => {
+  const n = sel && sel.type === 'node' ? nodeById(sel.id) : null; if (!n) return;
+  const slug = $('#profSlug').value.trim();
+  if (!SLUG_RE.test(slug)) { toast('Slug must be lowercase letters, digits and hyphens.'); return; }
+  const prof = { version: 1, slug, name: n.name, role: n.role, description: n.description, model: n.model, tools: n.tools };
+  try {
+    if (server.up) { await api('PUT', '/api/profiles/' + encodeURIComponent(slug), prof); await refreshServer(); }
+    else { store.set('ats.profiles', localProfiles().filter(p => p.slug !== slug).concat([prof])); }
+    mutate(() => { n.profile = slug; });
+    renderPalette(); toast('Profile "' + slug + '" saved.');
+  } catch (e) { toast('Could not save profile: ' + e.message, 5000); }
+});
+
+/* ---------- server ---------- */
+async function api(method, path, body, raw) {
+  const opt = { method, headers: {} };
+  if (method !== 'GET') opt.headers['X-Team-Studio'] = '1';
+  if (body !== undefined) { opt.headers['Content-Type'] = 'application/json'; opt.body = JSON.stringify(body); }
+  const r = await fetch(path, opt), txt = await r.text();
+  if (!r.ok) { let m = txt; try { m = JSON.parse(txt).error || txt; } catch { /* plain */ } throw new Error(m || ('HTTP ' + r.status)); }
+  return raw ? txt : (txt ? JSON.parse(txt) : null);
+}
+async function ping() {
+  if (location.protocol === 'file:') return;
+  try {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 1500);
+    const r = await fetch('/api/ping', { signal: ctl.signal }); clearTimeout(to);
+    const j = await r.json();
+    if (!j || !j.ok) throw new Error('no');
+    const was = server.up; server.up = true; server.home = j.home || '';
+    if (!was) { await refreshServer(); scheduleBrief(); }
+  } catch { server.up = false; }
+  setStatus();
+}
+async function refreshServer() {
+  try { server.profiles = (await api('GET', '/api/profiles')) || []; } catch { server.profiles = []; }
+  try { server.teams = (await api('GET', '/api/teams')) || []; } catch { server.teams = []; }
+  renderPalette();
+}
+let statusNote = '';
+function setStatus() {
+  $('#status').textContent = (server.up ? 'Server connected' : 'Standalone: browser storage') + (statusNote ? ' · ' + statusNote : '');
+  $('#btnSave').title = server.up ? 'Save the team to Claude (Cmd/Ctrl+S)' : 'Server not running: saves a local template instead (Cmd/Ctrl+S)';
+}
+function askConfirm(msg, okLabel) {
+  return new Promise(res => {
+    const d = $('#dlgConfirm'); $('#confirmMsg').textContent = msg; $('#confirmOk').textContent = okLabel || 'OK'; d.returnValue = '';
+    d.addEventListener('close', () => res(d.returnValue === 'ok'), { once: true }); d.showModal();
+  });
+}
+function blockingErrors() {
+  const e = problems.filter(p => p.level === 'error');
+  if (e.length) toast('Fix these before saving: ' + e.slice(0, 3).map(p => p.message).join(' ') + (e.length > 3 ? ' (+' + (e.length - 3) + ' more, see Checks)' : ''), 9000);
+  return e.length > 0;
+}
+// Returns true when it is fine to write `slug` to `target` ('server' or 'local'): either nothing is stored under it,
+// this graph came from / was last saved as it, or the user agreed to replace it.
+async function confirmOverwrite(slug, target) {
+  if (savedRef && savedRef.src === target && savedRef.slug === slug) return true;
+  let exists = false;
+  if (target === 'server') { try { exists = ((await api('GET', '/api/teams')) || []).some(t => t.name === slug); } catch { exists = false; } }
+  else exists = localTemplates().some(t => t.name === slug);
+  return exists ? askConfirm('Replace the saved team "' + slug + '"?', 'Replace') : true;
+}
+async function saveToClaude() {
+  if (blockingErrors()) return;
+  const t = cleanTeam();
+  if (!SLUG_RE.test(t.name)) { toast('Give the team a title first.'); return; }
+  const target = server.up ? 'server' : 'local';
+  if (!(await confirmOverwrite(t.name, target))) return;
+  if (t.name !== team.name) mutate(() => { team.name = t.name; });
+  if (!server.up) { saveLocalTemplate(t); savedRef = { src: 'local', slug: t.name }; scheduleSave(); toast('Server not running: saved as local template "' + t.name + '". Start it with: node bin/team.mjs serve', 5000); return; }
+  try { await api('PUT', '/api/teams/' + encodeURIComponent(t.name), t); savedRef = { src: 'server', slug: t.name }; scheduleSave(); await refreshServer(); statusNote = 'saved ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); setStatus(); toast('Saved "' + t.name + '" to Claude. Run it with /teams:run ' + t.name + ' your task.', 5000); }
+  catch (e) { toast('Save failed: ' + e.message, 9000); }
+}
+
+/* ---------- brief preview ---------- */
+let briefTimer, briefSeq = 0;
+function scheduleBrief() { if ($('#drawer').hidden) return; clearTimeout(briefTimer); briefTimer = setTimeout(loadBrief, 350); }
+async function fetchBrief() { return api('POST', '/api/compile', { team: cleanTeam(true), prompt: $('#briefPrompt').value || undefined }, true); }
+async function loadBrief() {
+  const pre = $('#briefText'), seq = ++briefSeq;
+  if (!server.up) { pre.className = ''; pre.textContent = 'Start the server for preview:\n\n  node bin/team.mjs serve\n\nthen open the printed address (or use /teams:edit in Claude Code).'; return; }
+  try { const t = await fetchBrief(); if (seq === briefSeq) { pre.className = ''; pre.textContent = t; } }
+  catch (e) { if (seq === briefSeq) { pre.className = 'err'; pre.textContent = 'Could not compile: ' + e.message; } }
+}
+function setDrawer(open) { $('#drawer').hidden = !open; $('#btnBrief').setAttribute('aria-expanded', String(open)); $('#btnBrief').setAttribute('aria-pressed', String(open)); if (open) loadBrief(); }
+
+/* ---------- templates ---------- */
+function localTemplates() { return store.get('ats.templates', []); }
+function saveLocalTemplate(t) { store.set('ats.templates', localTemplates().filter(x => x.name !== t.name).concat([t])); }
+function allTemplates() {
+  const m = new Map();
+  if (!server.up) STARTERS.forEach(t => m.set(t.name, { t, src: 'built-in', name: t.name, title: t.title, nodes: t.nodes.length, edges: t.edges.length }));
+  localTemplates().forEach(t => m.set(t.name, { t, src: 'local', name: t.name, title: t.title, nodes: t.nodes.length, edges: t.edges.length }));
+  server.teams.forEach(t => m.set(t.name, { src: 'server', name: t.name, title: t.title, nodes: t.nodes, edges: t.edges }));
+  return [...m.values()];
+}
+async function openTemplates() {
+  if (server.up) await refreshServer();
+  renderTemplates(); $('#dlgTpl').showModal();
+}
+function renderTemplates() {
+  const body = $('#tplBody'); body.textContent = '';
+  const name = el('input', { type: 'text', 'aria-label': 'Template name', maxlength: 80 }); name.value = team.title;
+  const save = el('button', { type: 'button', class: 'primary', text: server.up ? 'Save to Claude store' : 'Save in this browser' });
+  save.addEventListener('click', async () => {
+    const title = name.value.trim(), slug = slugify(title); if (!slug) { toast('Enter a name.'); return; }
+    if (blockingErrors()) return;
+    const t = cleanTeam(); t.title = title; t.name = slug;
+    const target = server.up ? 'server' : 'local';
+    if (!(await confirmOverwrite(slug, target))) return;
+    try {
+      if (server.up) { await api('PUT', '/api/teams/' + encodeURIComponent(slug), t); await refreshServer(); } else saveLocalTemplate(t);
+      savedRef = { src: target, slug };
+      mutate(() => { team.title = title; team.name = slug; }); syncTitle(); rebuildInspector();
+      toast('Saved template "' + slug + '".'); renderTemplates();
+    } catch (e) { toast('Save failed: ' + e.message, 6000); }
+  });
+  body.append(el('div', { class: 'row' }, el('div', { style: 'flex:1 1 220px' }, el('label', { class: 'f' }, el('span', { text: 'Save the current graph as a template' }), name)), save, el('button', { type: 'button', text: 'New empty team', onclick: () => { loadTeam(blankTeam()); $('#dlgTpl').close(); } })));
+  allTemplates().forEach(it => {
+    const row = el('div', { class: 'tplrow' }, el('div', { class: 't' }, el('b', { text: it.title || it.name }), el('span', { text: it.name + ' · ' + it.nodes + ' agents, ' + it.edges + ' edges · ' + it.src })));
+    const get = async () => it.t ? clone(it.t) : api('GET', '/api/teams/' + encodeURIComponent(it.name));
+    row.append(
+      el('button', { type: 'button', text: 'Load', onclick: async () => { try { loadTeam(await get(), { ref: it.src === 'built-in' ? null : { src: it.src, slug: it.name } }); $('#dlgTpl').close(); } catch (e) { toast('Could not load: ' + e.message, 5000); } } }),
+      el('button', { type: 'button', text: 'Duplicate', onclick: async () => {
+        try {
+          const t = await get(); const used = new Set(allTemplates().map(x => x.name)); let s = (it.name + '-copy').slice(0, 63), i = 2; while (used.has(s)) s = (it.name + '-copy-' + i++).slice(0, 63);
+          t.name = s; t.title = (t.title || it.name) + ' copy';
+          if (server.up) { await api('PUT', '/api/teams/' + encodeURIComponent(s), t); await refreshServer(); } else saveLocalTemplate(t);
+          toast('Duplicated as "' + s + '".'); renderTemplates();
+        } catch (e) { toast('Could not duplicate: ' + e.message, 5000); }
+      } }));
+    if (it.src !== 'built-in') {
+      const del = el('button', { type: 'button', class: 'danger', text: 'Delete' }); let armed = false;
+      del.addEventListener('click', async () => {
+        if (!armed) { armed = true; del.textContent = 'Confirm delete'; setTimeout(() => { armed = false; del.textContent = 'Delete'; }, 3000); return; }
+        try { if (it.src === 'server') { await api('DELETE', '/api/teams/' + encodeURIComponent(it.name)); await refreshServer(); } else store.set('ats.templates', localTemplates().filter(x => x.name !== it.name)); renderTemplates(); }
+        catch (e) { toast('Could not delete: ' + e.message, 5000); }
+      });
+      row.append(del);
+    }
+    body.append(row);
+  });
+}
+
+/* ---------- import / export ---------- */
+function exportJson() {
+  const t = cleanTeam(), blob = new Blob([JSON.stringify(t, null, 2) + '\n'], { type: 'application/json' });
+  const a = el('a', { href: URL.createObjectURL(blob), download: t.name + '.json' });
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast('Exported ' + t.name + '.json');
+}
+$('#fileIn').addEventListener('change', async ev => {
+  const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+  try { loadTeam(JSON.parse(await f.text()), { prefix: 'Imported "' + f.name + '". ' }); }
+  catch (e) { toast('Import failed: ' + e.message, 6000); }
+});
+
+/* ---------- issues, help ---------- */
+function openIssues() {
+  const b = $('#issuesBody'); b.textContent = '';
+  if (!problems.length) b.append(el('p', { text: 'No problems found.' }));
+  problems.forEach(p => {
+    const row = el('div', { class: 'issue' }, el('span', { class: 'lv', text: p.level }), el('span', { class: 'msg', text: p.message }));
+    if (p.nodeId && nodeById(p.nodeId)) row.append(el('button', { type: 'button', text: 'Show', onclick: () => { $('#dlgIssues').close(); setSelection({ type: 'node', id: p.nodeId }); } }));
+    if (p.edgeId && p.fix === 'remove') row.append(el('button', { type: 'button', class: 'danger', text: 'Remove edge', onclick: () => { mutate(() => { team.edges = team.edges.filter(e => e.id !== p.edgeId); }); openIssues(); } }));
+    else if (p.edgeId && edgeById(p.edgeId)) row.append(el('button', { type: 'button', text: 'Show', onclick: () => { $('#dlgIssues').close(); setSelection({ type: 'edge', id: p.edgeId }); } }));
+    b.append(row);
+  });
+  if (!$('#dlgIssues').open) $('#dlgIssues').showModal();
+}
+function buildHelp() {
+  const b = $('#helpBody');
+  const keys = [['Drag from purple dot', 'connect two agents (uses the "New edge kind" setting)'], ['Drag background / Space+drag', 'pan'], ['Scroll / pinch', 'zoom around the cursor'],
+    ['Double-click background', 'add a blank agent there'], ['Double-click node / Enter', 'edit it in the inspector'], ['Arrow keys on a node', 'move 10 px (Shift: 40 px)'],
+    ['Delete / Backspace', 'delete the selection and its edges'], ['Cmd/Ctrl+Z, Shift+Cmd/Ctrl+Z', 'undo, redo'], ['Cmd/Ctrl+D', 'duplicate the selected agent'],
+    ['Cmd/Ctrl+S', 'Save to Claude (or a local template when no server)'], ['P (edge selected)', 'flip the edge between positive arrow and negative inhibitor'], ['Esc', 'deselect or cancel a connection']];
+  const tb = el('table', { class: 'keys' }); keys.forEach(k => tb.append(el('tr', null, el('td', { text: k[0] }), el('td', { text: k[1] }))));
+  const lg = el('div', { class: 'legend' });
+  const dashes = { delegate: '', handoff: '10 4 2 4', review: '7 5', consult: '1.5 5', debate: '' };
+  KINDS.forEach(k => {
+    const s = sv('svg', { viewBox: '0 0 80 12' });
+    const p = sv('path', { d: 'M2 6H72' }); if (dashes[k]) p.setAttribute('stroke-dasharray', dashes[k]); if (k === 'debate') p.setAttribute('stroke-width', '3'); if (k === 'consult') p.setAttribute('stroke-linecap', 'round');
+    s.append(p, sv('path', { d: 'M72 1L79 6L72 11z', fill: 'var(--edge)', stroke: 'none' })); if (k === 'debate') s.append(sv('path', { d: 'M8 1L1 6L8 11z', fill: 'var(--edge)', stroke: 'none' }));
+    lg.append(el('span', null, s), el('span', null, el('b', { text: k + ': ' }), KIND_HELP[k]));
+  });
+  const pl = el('div', { class: 'legend' });
+  [['positive', 'Positive arrow: an ordinary edge. The default.'], ['negative', 'Negative inhibitor: a flat bar at the target end, in crimson. Illustration only; the brief and the checks ignore it.']].forEach(([k, txt]) => {
+    const s2 = sv('svg', { viewBox: '0 0 80 12' });
+    if (k === 'positive') s2.append(sv('path', { d: 'M2 6H72' }), sv('path', { d: 'M72 1L79 6L72 11z', fill: 'var(--edge)', stroke: 'none' }));
+    else { s2.append(sv('path', { d: 'M2 6H74', style: 'stroke:var(--neg)' }), sv('path', { d: 'M76 -1V13', style: 'stroke:var(--neg);stroke-width:4' })); }
+    pl.append(el('span', null, s2), el('span', null, txt));
+  });
+  b.textContent = ''; b.append(el('h3', { text: 'Edge kinds', style: 'margin:0' }), lg, el('h3', { text: 'Edge polarity (independent of kind)', style: 'margin:8px 0 0' }), pl,
+    el('h3', { text: 'Head agent', style: 'margin:8px 0 0' }), el('p', { style: 'margin:0', text: 'The pill-shaped node with a YOU badge is you, the main session. It is never spawned; it delegates along its edges. At most one per team.' }), el('h3', { text: 'Shortcuts', style: 'margin:8px 0 0' }), tb,
+    el('p', { class: 'mute small', text: 'The draft autosaves in this browser. Profiles and templates are stored in the browser until the server is running, then they come from the Claude store.' }));
+}
+
+/* ---------- persistence ---------- */
+let saveTimer;
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(flushSave, 250); }
+function flushSave() {
+  clearTimeout(saveTimer);
+  const ok = store.set('ats.draft', { team, view, lastKind, lastPol, snap, savedRef });
+  if (ok) { statusNote = 'draft saved'; setStatus(); }
+}
+window.addEventListener('pagehide', flushSave);
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
+
+/* ---------- chrome wiring ---------- */
+function syncTitle() { $('#teamTitle').value = team.title; }
+function syncToggles() {
+  $('#btnPal').setAttribute('aria-pressed', String(!document.body.classList.contains('pal-collapsed')));
+  $('#btnInsp').setAttribute('aria-pressed', String(!document.body.classList.contains('insp-collapsed')));
+}
+$('#teamTitle').addEventListener('input', () => {
+  const v = $('#teamTitle').value;
+  mutate(() => { const old = team.title; team.title = v; if (!team.name || team.name === slugify(old)) team.name = slugify(v); }, 'team:title');
+  if (!sel) { const s = $('#inspBody input[type=text]'); if (s) s.value = team.name; }
+});
+$('#btnUndo').onclick = doUndo; $('#btnRedo').onclick = doRedo;
+$('#btnTpl').onclick = openTemplates;
+$('#btnImport').onclick = () => $('#fileIn').click();
+$('#btnExport').onclick = exportJson;
+$('#btnBrief').onclick = () => setDrawer($('#drawer').hidden);
+$('#briefClose').onclick = () => setDrawer(false);
+$('#briefRefresh').onclick = loadBrief;
+$('#briefPrompt').addEventListener('input', scheduleBrief);
+$('#btnCopy').onclick = async () => {
+  if (!server.up) { toast('Start the server to compile the brief (node bin/team.mjs serve).', 5000); return; }
+  try { const t = await fetchBrief(); toast(await copyText(t) ? 'Brief copied to the clipboard.' : 'Copy was blocked by the browser; open Brief preview and copy from there.', 4000); }
+  catch (e) { toast('Could not compile: ' + e.message, 6000); }
+};
+$('#btnSave').onclick = saveToClaude;
+$('#issuesBtn').onclick = openIssues;
+$('#btnHelp').onclick = () => $('#dlgHelp').showModal();
+$('#btnPal').onclick = () => { document.body.classList.toggle('pal-collapsed'); syncToggles(); };
+$('#btnInsp').onclick = () => { document.body.classList.toggle('insp-collapsed'); syncToggles(); };
+$('#inspClose').onclick = () => { document.body.classList.add('insp-collapsed'); syncToggles(); };
+$('#btnNewAgent').onclick = () => spawnNode(null);
+$('#tAdd').onclick = () => spawnNode(null);
+$('#tLayout').onclick = () => autoLayout(false);
+$('#tFit').onclick = fitView;
+$('#tIn').onclick = () => { const r = vp.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, view.k * 1.2); };
+$('#tOut').onclick = () => { const r = vp.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, view.k / 1.2); };
+$('#tZoom').onclick = () => { const r = vp.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1); };
+$('#tSnap').onchange = () => { snap = $('#tSnap').checked; scheduleSave(); };
+$('#tKind').onchange = () => { lastKind = $('#tKind').value; scheduleSave(); };
+$('#tPol').onchange = () => { lastPol = $('#tPol').value; scheduleSave(); };
+KINDS.forEach(k => $('#tKind').append(el('option', { value: k, text: k })));
+$('#btnSaveProf').onclick = openProfileDialog;
+$('#profFilter').addEventListener('input', renderPalette);
+document.querySelectorAll('dialog').forEach(d => {
+  d.addEventListener('click', ev => { if (ev.target === d) d.close(); });
+  d.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => d.close()));
+});
+// theme
+const THEMES = ['auto', 'light', 'dark'];
+function applyTheme(t) { if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t); $('#btnTheme').textContent = 'Theme: ' + t; }
+let theme = store.get('ats.theme', 'dark'); if (!THEMES.includes(theme)) theme = 'dark';
+applyTheme(theme);
+$('#btnTheme').onclick = () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; store.set('ats.theme', theme); applyTheme(theme); };
+
+/* ---------- init ---------- */
+(function init() {
+  if (window.innerWidth < 900) document.body.classList.add('pal-collapsed');
+  syncToggles(); buildHelp(); renderPalette();
+  const d = store.get('ats.draft', null);
+  let loaded = false;
+  if (d && d.team) {
+    try { const rep = {}; team = normalize(d.team, rep); if (d.view && Number.isFinite(d.view.k)) view = d.view; lastKind = KINDS.includes(d.lastKind) ? d.lastKind : 'delegate'; lastPol = d.lastPol === 'negative' ? 'negative' : 'positive'; snap = !!d.snap; savedRef = d.savedRef && SLUG_RE.test(d.savedRef.slug || '') ? d.savedRef : null; loaded = true; if (rep.needLayout) autoLayout(true); } catch { loaded = false; }
+  }
+  if (!loaded) { team = normalize(clone(STARTERS[0])); autoLayout(true); }
+  $('#tKind').value = lastKind; $('#tPol').value = lastPol; $('#tSnap').checked = snap;
+  syncTitle(); rebuildInspector(); renderAll(); applyView();
+  if (!loaded) requestAnimationFrame(fitView);
+  setStatus(); ping(); setInterval(ping, 8000);
+  window.__ats = { get team() { return team; }, get view() { return view; }, get sel() { return sel; }, undoDepth: () => undo.length, doUndo, doRedo, loadTeam, fitView, flushSave };
+})();
+})();
+</script>
+</body>
+</html>

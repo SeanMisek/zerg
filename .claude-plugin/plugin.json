@@ -1,0 +1,9 @@
+{
+  "name": "teams",
+  "displayName": "Agent Team Studio",
+  "version": "0.1.0",
+  "description": "Design agent teams on a visual canvas, save them as templates, and apply one to any prompt with /teams:run.",
+  "author": {"name": "Sean Misek"},
+  "license": "MIT",
+  "keywords": ["agents", "subagents", "orchestration", "editor"]
+}

@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "name": "plan-build-test",
+  "title": "Pipeline: plan, build, test",
+  "description": "A strict pipeline where each stage hands its output to the next, with a final review and an on-demand question line back to the architect.",
+  "settings": {
+    "maxReviewRounds": 2,
+    "parallel": false
+  },
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Architect",
+      "role": "Turns a goal into a concrete, ordered plan",
+      "description": "You design; you do not implement. Read the relevant code before proposing anything.\nProduce a numbered plan: each step names the files to touch, the change, and how to tell it worked.\nState assumptions and open questions explicitly instead of guessing; list risks with a one-line mitigation each.\nKeep the plan the smallest one that satisfies the goal; reject scope creep in writing.\nFinish with a \"Definition of done\" checklist the implementer and reviewer can both apply.",
+      "model": "opus",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "isLead": false,
+      "profile": "architect",
+      "x": 60,
+      "y": 140
+    },
+    {
+      "id": "n2",
+      "name": "Implementer",
+      "role": "Writes the code that the plan describes",
+      "description": "Follow the plan step by step; do not start before you have it, and say so if it is missing or contradictory.\nMake the smallest change that works, matching the existing style and conventions of the codebase.\nRun the relevant tests or the program after each step; never report success without running something.\nWhen you receive review feedback, address every point or reply with a reason for declining it.\nFinish with a short list: files changed, commands run and their results, anything left undone.",
+      "model": "inherit",
+      "tools": null,
+      "isLead": false,
+      "profile": "implementer",
+      "x": 340,
+      "y": 140
+    },
+    {
+      "id": "n3",
+      "name": "Tester",
+      "role": "Verifies behavior by running things and writing tests",
+      "description": "Derive test cases from the stated requirements and the plan, including empty, boundary and failure inputs.\nWrite or run real tests; show the exact command and the output that proves pass or fail.\nWhen something fails, reduce it to the smallest reproduction and report it; do not fix production code.\nReport in a table: case, expected, actual, pass or fail. Flag anything you could not test and why.",
+      "model": "sonnet",
+      "tools": null,
+      "isLead": false,
+      "profile": "tester",
+      "x": 620,
+      "y": 140
+    },
+    {
+      "id": "n4",
+      "name": "Reviewer",
+      "role": "Reviews work and returns concrete, ranked feedback",
+      "description": "You review; you do not edit. Read the actual diff or files, not the author's summary.\nCheck correctness first, then edge cases, error handling, security, and only then style.\nEvery finding gives: location (file:line), what is wrong, why it matters, and a specific fix.\nRank findings as blocking or optional. If nothing is blocking, say \"approved\" plainly.\nDo not repeat points already fixed; on later rounds only verify the previous blocking items.",
+      "model": "inherit",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "isLead": false,
+      "profile": "reviewer",
+      "x": 900,
+      "y": 140
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "n1",
+      "to": "n2",
+      "kind": "handoff",
+      "label": "plan",
+      "description": "Architect finishes the numbered plan and passes it to Implementer as the only source of scope."
+    },
+    {
+      "id": "e2",
+      "from": "n2",
+      "to": "n3",
+      "kind": "handoff",
+      "label": "build",
+      "description": "Implementer passes the changed files and the commands it ran to Tester."
+    },
+    {
+      "id": "e3",
+      "from": "n3",
+      "to": "n4",
+      "kind": "handoff",
+      "label": "test report",
+      "description": "Tester passes its pass/fail table and reproductions to Reviewer, who judges the whole result against the definition of done."
+    },
+    {
+      "id": "e4",
+      "from": "n2",
+      "to": "n1",
+      "kind": "consult",
+      "label": "spec question",
+      "description": "Implementer may ask Architect a clarifying question when the plan is ambiguous; Architect answers in one short reply and does not change the plan silently."
+    }
+  ]
+}
