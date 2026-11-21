@@ -127,3 +127,7 @@ Layout: `bin/` is the CLI, `lib/` the store, validator and compiler, `server/` t
 ## Status
 
 An early version. The compiler, validator, server and CLI are covered by automated tests, and the editor has been exercised by hand in a browser. The slash commands (`/teams:*`) have been checked piece by piece but not yet run end to end in a live Claude session, so expect rough edges there. In particular, `/teams:load`'s pick-list and the marketplace install path are untested. Bug reports and ideas are welcome.
+
+## License
+
+[MIT](LICENSE)
