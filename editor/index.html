@@ -1379,7 +1379,11 @@ $('#btnTheme').onclick = () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]
 (function init() {
   if (window.innerWidth < 900) document.body.classList.add('pal-collapsed');
   syncToggles(); buildHelp(); renderPalette();
-  const d = store.get('ats.draft', null);
+  // ?new=1 (used by /zerg) means a blank slate: ignore and clear any stored draft, then drop the flag.
+  let fresh = false;
+  try { const u = new URL(location.href); if (u.searchParams.has('new')) { fresh = true; u.searchParams.delete('new'); history.replaceState(null, '', u.pathname + u.search + u.hash); } } catch { /* ignore */ }
+  if (fresh) { try { localStorage.removeItem('ats.draft'); } catch { /* ignore */ } }
+  const d = fresh ? null : store.get('ats.draft', null);
   let loaded = false;
   if (d && d.team) {
     try { const rep = {}; team = normalize(d.team, rep); if (d.view && Number.isFinite(d.view.k)) view = d.view; lastKind = KINDS.includes(d.lastKind) ? d.lastKind : 'delegate'; lastPol = d.lastPol === 'negative' ? 'negative' : 'positive'; snap = !!d.snap; savedRef = d.savedRef && SLUG_RE.test(d.savedRef.slug || '') ? d.savedRef : null; loaded = true; if (rep.needLayout) autoLayout(true); } catch { loaded = false; }
